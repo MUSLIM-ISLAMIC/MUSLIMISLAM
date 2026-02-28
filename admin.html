@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>MIO MASTER CONTROL | Final Fixed</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Plus+Jakarta+Sans:wght@400;600;800&display=swap');
+
+        :root {
+            --accent: #00ff9d;
+            --danger: #ff4b4b;
+            --bg-dark: #05070a;
+            --glass: rgba(255, 255, 255, 0.03);
+            --border: rgba(255, 255, 255, 0.08);
+        }
+
+        body {
+            background: var(--bg-dark);
+            color: #e2e8f0;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        .mono { font-family: 'JetBrains Mono', monospace; }
+
+        /* SIDEBAR ANIMATION FIX */
+        #sidebar {
+            transition: transform 0.3s ease-in-out;
+            z-index: 1000;
+        }
+        
+        @media (max-width: 768px) {
+            #sidebar { position: fixed; left: 0; transform: translateX(-100%); height: 100vh; width: 280px; }
+            #sidebar.open { transform: translateX(0); }
+            #sidebar-overlay {
+                display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(5px); z-index: 900;
+            }
+            #sidebar-overlay.active { display: block; }
+        }
+
+        .sidebar-item { transition: all 0.2s; border-left: 4px solid transparent; }
+        .sidebar-item.active { background: rgba(0, 255, 157, 0.1); border-left-color: var(--accent); color: var(--accent); }
+
+        .glass-card { background: var(--glass); backdrop-filter: blur(15px); border: 1px solid var(--border); border-radius: 16px; }
+
+        /* INPUTS */
+        .input-field {
+            background: rgba(0,0,0,0.5); border: 1px solid var(--border); color: white; transition: all 0.3s;
+        }
+        .input-field:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 10px rgba(0,255,157,0.2); }
+
+        /* MODAL FIX */
+        #project-modal { transition: opacity 0.3s ease; }
+        .modal-content { transform: scale(0.9); transition: transform 0.3s ease; }
+        #project-modal.show .modal-content { transform: scale(1); }
+    </style>
+</head>
+<body class="flex">
+
+    <div id="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+    <aside id="sidebar" class="w-72 bg-[#020406] border-r border-white/5 flex flex-col">
+        <div class="p-8 text-center border-b border-white/5 relative">
+            <img src="https://i.ibb.co/hxKxjqWk/logo.png" class="w-14 mx-auto mb-4 drop-shadow-[0_0_10px_#00ff9d]" alt="Logo">
+            <h2 class="text-xs font-black tracking-[0.4em] text-green-400">MIO ADMIN</h2>
+            <p class="text-[9px] text-gray-500 mt-1 uppercase">ICS CS INFRASTRUCTURE</p>
+        </div>
+
+        <nav class="flex-1 p-4 space-y-1">
+            <button onclick="switchTab('dash')" id="tab-btn-dash" class="sidebar-item active w-full flex items-center gap-4 px-5 py-4 rounded-xl text-sm font-bold">
+                <i class="fas fa-chart-line w-5"></i> Dashboard
+            </button>
+            <button onclick="switchTab('projects')" id="tab-btn-projects" class="sidebar-item w-full flex items-center gap-4 px-5 py-4 rounded-xl text-sm font-bold">
+                <i class="fas fa-edit w-5"></i> Project Manager
+            </button>
+            <button onclick="switchTab('chat')" id="tab-btn-chat" class="sidebar-item w-full flex items-center gap-4 px-5 py-4 rounded-xl text-sm font-bold">
+                <i class="fas fa-comments w-5"></i> Chat Logs
+            </button>
+            <button onclick="switchTab('security')" id="tab-btn-security" class="sidebar-item w-full flex items-center gap-4 px-5 py-4 rounded-xl text-sm font-bold">
+                <i class="fas fa-key w-5"></i> Security Auth
+            </button>
+        </nav>
+
+        <div class="p-6 border-t border-white/5 bg-black/40">
+            <button onclick="window.location.reload()" class="w-full py-3 bg-red-500/10 text-red-500 rounded-lg text-xs font-bold hover:bg-red-500 hover:text-white transition">
+                REFRESH SYSTEM
+            </button>
+        </div>
+    </aside>
+
+    <main class="flex-1 flex flex-col min-w-0 bg-[#05070a]">
+        <header class="h-16 border-b border-white/5 flex items-center justify-between px-6 bg-black/40 backdrop-blur-md">
+            <button onclick="toggleSidebar()" class="md:hidden text-green-400 text-xl"><i class="fas fa-bars"></i></button>
+            <div class="hidden md:flex items-center gap-3">
+                <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                <span class="text-[10px] font-mono text-gray-400 uppercase tracking-widest">Master Node: Muaaz Iqbal</span>
+            </div>
+            <div id="auth-status" class="bg-red-500/10 text-red-500 text-[10px] px-4 py-1.5 rounded-full border border-red-500/20 font-black">SYSTEM LOCKED</div>
+        </header>
+
+        <div class="flex-1 overflow-y-auto p-4 md:p-8">
+            
+            <section id="view-dash" class="space-y-6">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="glass-card p-6">
+                        <p class="text-[10px] text-gray-500 uppercase font-black mb-1">Total Views</p>
+                        <h3 id="stat-views" class="text-4xl font-black text-white mono">0000</h3>
+                    </div>
+                    <div class="glass-card p-6">
+                        <p class="text-[10px] text-gray-500 uppercase font-black mb-1">Total Projects</p>
+                        <h3 id="stat-projects" class="text-4xl font-black text-green-400 mono">0</h3>
+                    </div>
+                    <div class="glass-card p-6">
+                        <p class="text-[10px] text-gray-500 uppercase font-black mb-1">Server Latency</p>
+                        <h3 class="text-4xl font-black text-blue-400 mono">Online</h3>
+                    </div>
+                </div>
+
+                <div class="glass-card">
+                    <div class="p-4 border-b border-white/5 flex justify-between items-center">
+                        <h4 class="text-xs font-black uppercase text-blue-400">Live Visitor Analytics</h4>
+                        <button onclick="clearAnalytics()" class="text-[10px] text-red-500 font-bold uppercase hover:underline">Clear Logs</button>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs">
+                            <thead class="bg-black/60 text-gray-500">
+                                <tr>
+                                    <th class="p-4">Time</th>
+                                    <th class="p-4">IP Address</th>
+                                    <th class="p-4">OS/Device</th>
+                                </tr>
+                            </thead>
+                            <tbody id="logs-body" class="mono divide-y divide-white/5"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <section id="view-projects" class="hidden space-y-6">
+                <div class="flex justify-between items-center bg-green-500/5 p-6 rounded-2xl border border-green-500/10">
+                    <h2 class="text-xl font-black">PROJECT <span class="text-green-400">CONTROL</span></h2>
+                    <button onclick="openProjectModal()" class="bg-green-500 text-black px-6 py-3 rounded-xl font-black text-xs hover:bg-green-400 transition shadow-lg shadow-green-500/20">
+                        <i class="fas fa-plus-circle mr-2"></i> CREATE NEW
+                    </button>
+                </div>
+                <div id="admin-project-list" class="grid grid-cols-1 gap-4">
+                    </div>
+            </section>
+
+            <section id="view-chat" class="hidden">
+                <div class="glass-card max-w-4xl mx-auto h-[70vh] flex flex-col overflow-hidden">
+                    <div class="p-4 bg-yellow-500/5 border-b border-white/5 flex justify-between">
+                        <span class="text-yellow-500 font-black text-xs">GLOBAL RELAY CONTROL</span>
+                        <button onclick="clearChat()" class="text-red-500 text-[10px] font-bold hover:underline">WIPE CHAT</button>
+                    </div>
+                    <div id="chat-box" class="flex-1 p-6 overflow-y-auto space-y-4 bg-[#020408]"></div>
+                    <div class="p-4 border-t border-white/5 flex gap-3">
+                        <input id="chat-input" type="text" placeholder="Broadcast message..." class="flex-1 input-field p-4 rounded-xl text-sm">
+                        <button onclick="sendAdminMsg()" class="bg-yellow-500 text-black px-8 rounded-xl font-black">SEND</button>
+                    </div>
+                </div>
+            </section>
+
+            <section id="view-security" class="hidden">
+                <div class="max-w-md mx-auto glass-card p-10 text-center space-y-6">
+                    <div class="w-20 h-20 bg-red-500/10 rounded-full flex items-center justify-center mx-auto border border-red-500/20">
+                        <i class="fas fa-user-lock text-3xl text-red-500"></i>
+                    </div>
+                    <h2 class="text-xl font-black">ADMIN AUTHENTICATION</h2>
+                    <p class="text-xs text-gray-500">Enter your master key to enable database editing.</p>
+                    <input id="pass-input" type="password" placeholder="••••••••" class="w-full input-field p-5 rounded-xl text-center text-2xl tracking-[0.5em]">
+                    <button onclick="loginAdmin()" class="w-full bg-white text-black py-4 rounded-xl font-black hover:bg-green-400 transition">UNLOCK SYSTEM</button>
+                </div>
+            </section>
+
+        </div>
+    </main>
+
+    <div id="project-modal" class="fixed inset-0 bg-black/95 z-[2000] hidden flex items-center justify-center p-4">
+        <div class="modal-content glass-card w-full max-w-lg overflow-hidden border-green-500/30">
+            <div class="p-5 border-b border-white/10 flex justify-between items-center bg-green-500/5">
+                <h3 id="modal-title" class="text-xs font-black tracking-widest text-green-400">EDITING DATA NODE</h3>
+                <button onclick="closeProjectModal()" class="text-gray-500 hover:text-white"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="p-8 space-y-5">
+                <input type="hidden" id="edit-id">
+                <div class="space-y-2">
+                    <label class="text-[10px] text-gray-500 uppercase font-black">Project Title</label>
+                    <input id="edit-title" type="text" class="w-full input-field p-4 rounded-xl text-sm">
+                </div>
+                <div class="space-y-2">
+                    <label class="text-[10px] text-gray-500 uppercase font-black">Image Link (HTTPS)</label>
+                    <input id="edit-image" type="text" class="w-full input-field p-4 rounded-xl text-sm">
+                </div>
+                <div class="space-y-2">
+                    <label class="text-[10px] text-gray-500 uppercase font-black">Target URL</label>
+                    <input id="edit-link" type="text" class="w-full input-field p-4 rounded-xl text-sm">
+                </div>
+                <div class="space-y-2">
+                    <label class="text-[10px] text-gray-500 uppercase font-black">Brief Description</label>
+                    <textarea id="edit-desc" rows="3" class="w-full input-field p-4 rounded-xl text-sm"></textarea>
+                </div>
+                <button onclick="saveProject()" class="w-full bg-green-500 text-black py-4 rounded-xl font-black text-xs hover:bg-green-400 transition shadow-lg shadow-green-500/20">COMMIT CHANGES</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // CONFIG
+        const firebaseConfig = {
+            apiKey: "AIzaSyBbnU8DkthpYQMHOLLyj6M0cc05qXfjMcw",
+            authDomain: "ramadan-2385b.firebaseapp.com",
+            databaseURL: "https://ramadan-2385b-default-rtdb.firebaseio.com",
+            projectId: "ramadan-2385b"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        let isLogged = false;
+        let allProjects = {}; // CRITICAL: Local cache for editing
+
+        // UI HELPERS
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('open');
+            document.getElementById('sidebar-overlay').classList.toggle('active');
+        }
+
+        function switchTab(id) {
+            ['dash', 'projects', 'chat', 'security'].forEach(t => {
+                document.getElementById('view-' + t).classList.add('hidden');
+                document.getElementById('tab-btn-' + t).classList.remove('active');
+            });
+            document.getElementById('view-' + id).classList.remove('hidden');
+            document.getElementById('tab-btn-' + id).classList.add('active');
+            if(window.innerWidth < 768) toggleSidebar();
+        }
+
+        // AUTH
+        function loginAdmin() {
+            if(document.getElementById('pass-input').value === "ICS-MIO") {
+                isLogged = true;
+                const status = document.getElementById('auth-status');
+                status.innerText = "AUTHENTICATED: MUAAZ";
+                status.className = "bg-green-500/10 text-green-500 text-[10px] px-4 py-1.5 rounded-full border border-green-500/20 font-black";
+                Swal.fire({ icon: 'success', title: 'ACCESS GRANTED', background: '#05070a', color: '#fff'});
+                switchTab('dash');
+            } else {
+                Swal.fire({ icon: 'error', title: 'INVALID KEY', background: '#05070a', color: '#fff'});
+            }
+        }
+
+        // ANALYTICS & DASHBOARD
+        db.ref('analytics/global_views').on('value', s => {
+            document.getElementById('stat-views').innerText = (s.val() || 0).toString().padStart(4, '0');
+        });
+
+        db.ref('analytics/visitors').limitToLast(10).on('value', snap => {
+            const body = document.getElementById('logs-body');
+            body.innerHTML = '';
+            snap.forEach(c => {
+                const l = c.val();
+                body.innerHTML += `<tr class="hover:bg-white/5 transition"><td class="p-4 text-gray-500">${new Date(l.timestamp).toLocaleTimeString()}</td><td class="p-4 text-green-400 font-bold">${l.ip}</td><td class="p-4 text-blue-300">${l.os}</td></tr>`;
+            });
+        });
+
+        // PROJECT CRUD (THE FIX)
+        db.ref('organization_projects').on('value', snap => {
+            const list = document.getElementById('admin-project-list');
+            list.innerHTML = '';
+            let count = 0;
+            allProjects = snap.val() || {}; // Cache data locally
+
+            snap.forEach(child => {
+                count++;
+                const p = child.val();
+                const id = child.key;
+                list.innerHTML += `
+                    <div class="glass-card p-5 flex flex-col md:flex-row items-center justify-between gap-4 group">
+                        <div class="flex items-center gap-5">
+                            <img src="${p.logoLink}" class="w-14 h-14 rounded-xl object-cover border border-white/10" onerror="this.src='https://via.placeholder.com/100'">
+                            <div>
+                                <h4 class="font-bold text-white">${p.title}</h4>
+                                <p class="text-[9px] text-gray-500 font-mono mt-1">${id}</p>
+                            </div>
+                        </div>
+                        <div class="flex gap-2 w-full md:w-auto">
+                            <button onclick="openProjectModal('${id}')" class="flex-1 md:flex-none py-2 px-6 rounded-lg border border-blue-500/30 text-blue-400 text-xs font-bold hover:bg-blue-500 hover:text-white transition">EDIT</button>
+                            <button onclick="deleteProject('${id}')" class="flex-1 md:flex-none py-2 px-6 rounded-lg border border-red-500/30 text-red-500 text-xs font-bold hover:bg-red-500 hover:text-white transition">DELETE</button>
+                        </div>
+                    </div>
+                `;
+            });
+            document.getElementById('stat-projects').innerText = count;
+        });
+
+        function openProjectModal(id = null) {
+            if(!isLogged) return switchTab('security');
+            const modal = document.getElementById('project-modal');
+            modal.classList.remove('hidden');
+            setTimeout(() => modal.classList.add('show'), 10);
+
+            if(id && allProjects[id]) {
+                const data = allProjects[id];
+                document.getElementById('edit-id').value = id;
+                document.getElementById('edit-title').value = data.title;
+                document.getElementById('edit-desc').value = data.description;
+                document.getElementById('edit-image').value = data.logoLink;
+                document.getElementById('edit-link').value = data.projectUrl;
+                document.getElementById('modal-title').innerText = "EDITING NODE: " + id;
+            } else {
+                document.getElementById('edit-id').value = "";
+                document.getElementById('edit-title').value = "";
+                document.getElementById('edit-desc').value = "";
+                document.getElementById('edit-image').value = "";
+                document.getElementById('edit-link').value = "";
+                document.getElementById('modal-title').innerText = "CREATE NEW NODE";
+            }
+        }
+
+        function closeProjectModal() {
+            const modal = document.getElementById('project-modal');
+            modal.classList.remove('show');
+            setTimeout(() => modal.classList.add('hidden'), 300);
+        }
+
+        function saveProject() {
+            if(!isLogged) return;
+            const id = document.getElementById('edit-id').value;
+            const payload = {
+                title: document.getElementById('edit-title').value,
+                description: document.getElementById('edit-desc').value,
+                logoLink: document.getElementById('edit-image').value,
+                projectUrl: document.getElementById('edit-link').value,
+                timestamp: firebase.database.ServerValue.TIMESTAMP
+            };
+
+            if(!payload.title || !payload.projectUrl) {
+                alert("Please fill all mandatory fields.");
+                return;
+            }
+
+            const ref = id ? db.ref('organization_projects/' + id) : db.ref('organization_projects').push();
+            if(!id) payload.starCount = 0;
+
+            ref.set(payload).then(() => {
+                closeProjectModal();
+                Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'DATABASE UPDATED', showConfirmButton: false, timer: 1500 });
+            }).catch(e => {
+                alert("Firebase Error: Check security rules.");
+            });
+        }
+
+        function deleteProject(id) {
+            if(!isLogged) return switchTab('security');
+            Swal.fire({
+                title: 'Delete Project?',
+                text: "This action is irreversible!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ff4b4b',
+                background: '#05070a', color: '#fff'
+            }).then(r => { if(r.isConfirmed) db.ref('organization_projects/' + id).remove(); });
+        }
+
+        // CHAT
+        function sendAdminMsg() {
+            if(!isLogged) return switchTab('security');
+            const input = document.getElementById('chat-input');
+            if(!input.value.trim()) return;
+            db.ref('system_chat').push({
+                senderName: "ADMIN (MUAAZ)",
+                messageText: input.value,
+                isAdmin: true,
+                timestamp: firebase.database.ServerValue.TIMESTAMP
+            }).then(() => input.value = '');
+        }
+
+        db.ref('system_chat').limitToLast(20).on('value', snap => {
+            const box = document.getElementById('chat-box');
+            box.innerHTML = '';
+            snap.forEach(c => {
+                const d = c.val();
+                box.innerHTML += `<div class="p-3 rounded-lg border border-white/5 ${d.isAdmin ? 'bg-yellow-500/5 text-yellow-500' : 'bg-white/5 text-blue-400'}"><div class="text-[9px] font-black uppercase mb-1">${d.senderName}</div><p class="text-sm text-gray-300">${d.messageText}</p></div>`;
+            });
+            box.scrollTop = box.scrollHeight;
+        });
+
+        function clearChat() { if(isLogged) db.ref('system_chat').remove(); }
+        function clearAnalytics() { if(isLogged) db.ref('analytics/visitors').remove(); }
+
+    </script>
+</body>
+</html>

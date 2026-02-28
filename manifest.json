@@ -1,0 +1,23 @@
+{
+  "name": "MIO Digital Network",
+  "short_name": "MiTV",
+  "description": "Muaaz Iqbal Creative Systems - ICS CS Branch",
+  "start_url": "/index.html",
+  "display": "standalone",
+  "background_color": "#05070a",
+  "theme_color": "#00ff9d",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "https://i.ibb.co/hxKxjqWk/logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://i.ibb.co/hxKxjqWk/logo.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
