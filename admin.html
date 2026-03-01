@@ -93,6 +93,9 @@
     <i class="fas fa-rocket w-5 text-yellow-400"></i> Project Launcher
 </button>
 
+<button onclick="switchTab('settings')" id="tab-btn-settings" class="sidebar-item w-full flex items-center gap-4 px-5 py-4 rounded-xl text-sm font-bold">
+    <i class="fas fa-cog w-5 text-gray-400"></i> System Settings
+</button>
 
             <button onclick="switchTab('security')" id="tab-btn-security" class="sidebar-item w-full flex items-center gap-4 px-5 py-4 rounded-xl text-sm font-bold">
                 <i class="fas fa-key w-5"></i> Security Auth
@@ -153,6 +156,21 @@
                     </div>
                 </div>
             </section>
+<section id="view-settings" class="hidden space-y-6">
+    <div class="glass-card p-8 border border-cyan-500/30">
+        <h2 class="text-xl font-black text-white mb-4 uppercase tracking-widest flex items-center gap-3">
+            <i class="fas fa-shield-alt text-cyan-400"></i> Advanced Security
+        </h2>
+        
+        <div class="p-6 bg-black/40 rounded-2xl border border-white/5">
+            <h3 class="text-sm font-bold text-gray-300">Biometric Master Key</h3>
+            <p class="text-[10px] text-gray-500 mb-4">Register your fingerprint to unlock the system without a password.</p>
+            <button onclick="registerBiometric()" class="px-6 py-3 bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 rounded-xl font-bold text-xs hover:bg-cyan-500 hover:text-black transition-all">
+                SET FINGERPRINT KEY
+            </button>
+        </div>
+    </div>
+</section>
 
             <section id="view-projects" class="hidden space-y-6">
                 
@@ -714,6 +732,80 @@ db.ref('scheduled_launches').on('value', snap => {
         `;
     });
 });
+// ==========================================
+// 🔐 BIOMETRIC MASTER KEY SYSTEM
+// ==========================================
+
+async function registerBiometric() {
+    if (!window.PublicKeyCredential) {
+        return Swal.fire("Error", "Aapka browser biometric support nahi karta!", "error");
+    }
+
+    // Ye aik Unique Challenge hota hai jo har bar badalta hai
+    const challenge = new Uint8Array(32);
+    window.crypto.getRandomValues(challenge);
+
+    const createCredentialOptions = {
+        publicKey: {
+            challenge: challenge,
+            rp: { name: "MUSLIM ISLAM ORG" },
+            user: {
+                id: Uint8Array.from("MIO-ADMIN-001", c => c.charCodeAt(0)),
+                name: "Muaaz Iqbal",
+                displayName: "Admin Muaaz"
+            },
+            pubKeyCredParams: [{ alg: -7, type: "public-key" }], // ES256 algorithm
+            timeout: 60000,
+            attestation: "direct"
+        }
+    };
+
+    try {
+        const credential = await navigator.credentials.create(createCredentialOptions);
+        // Fingerprint ka data mil gaya! Ab isay Firebase mein save kar dein.
+        const credentialID = btoa(String.fromCharCode(...new Uint8Array(credential.rawId)));
+        
+        db.ref('system_config/admin_fingerprint').set(credentialID).then(() => {
+            Swal.fire("Success!", "Fingerprint registered as Master Key!", "success");
+        });
+    } catch (err) {
+        console.error(err);
+        Swal.fire("Failed", "Biometric registration failed or cancelled.", "error");
+    }
+}
+async function verifyBiometric() {
+    const snapshot = await db.ref('system_config/admin_fingerprint').once('value');
+    const savedID = snapshot.val();
+
+    if(!savedID) return alert("Pehle fingerprint register karein!");
+
+    const challenge = new Uint8Array(32);
+    window.crypto.getRandomValues(challenge);
+
+    const getCredentialOptions = {
+        publicKey: {
+            challenge: challenge,
+            allowCredentials: [{
+                id: Uint8Array.from(atob(savedID), c => c.charCodeAt(0)),
+                type: 'public-key'
+            }],
+            timeout: 60000,
+        }
+    };
+
+    try {
+        const assertion = await navigator.credentials.get(getCredentialOptions);
+        if(assertion) {
+            // Fingerprint Match Ho Gaya! ✅
+            isLogged = true;
+            document.getElementById('login-screen').classList.add('hidden');
+            Swal.fire("Welcome, Muaaz!", "Master Access Granted.", "success");
+        }
+    } catch (err) {
+        Swal.fire("Access Denied", "Biometric verification failed!", "error");
+    }
+}
+
 
     </script>
 </body>
