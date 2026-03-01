@@ -291,6 +291,87 @@
     70% { box-shadow: 0 0 0 25px rgba(0, 255, 157, 0); }
     100% { box-shadow: 0 0 0 0 rgba(0, 255, 157, 0); }
 }
+/* ==========================================
+   🌟 MIO MEMBERS UI STYLES
+   ========================================== */
+.member-section {
+    position: relative;
+    padding: 80px 20px;
+    background: linear-gradient(180deg, transparent 0%, rgba(168, 85, 247, 0.03) 50%, transparent 100%);
+}
+
+.member-card {
+    background: rgba(255, 255, 255, 0.02);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(168, 85, 247, 0.1);
+    border-radius: 24px;
+    padding: 40px 20px 30px;
+    text-align: center;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    position: relative;
+    margin-top: 50px; /* Space for the overlapping image */
+}
+
+.member-card:hover {
+    transform: translateY(-10px);
+    border-color: rgba(168, 85, 247, 0.4);
+    box-shadow: 0 20px 40px rgba(168, 85, 247, 0.1);
+}
+
+.member-img-wrap {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    padding: 4px;
+    background: linear-gradient(135deg, #a855f7, #00ff9d);
+    position: absolute;
+    top: -60px;
+    left: 50%;
+    transform: translateX(-50%);
+    cursor: pointer;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    transition: all 0.3s ease;
+    z-index: 10;
+}
+
+.member-img-wrap:hover {
+    transform: translateX(-50%) scale(1.1) rotate(5deg);
+    box-shadow: 0 0 25px rgba(168, 85, 247, 0.6);
+}
+
+.member-img-wrap img {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 4px solid #05070a;
+}
+
+/* The Box On Top of Circle Bottom */
+.member-name-badge {
+    position: absolute;
+    bottom: -15px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #05070a;
+    border: 1px solid rgba(168, 85, 247, 0.5);
+    padding: 5px 15px;
+    border-radius: 20px;
+    white-space: nowrap;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+    z-index: 20;
+}
+
+/* Full Screen Image Viewer */
+#image-viewer-modal {
+    backdrop-filter: blur(15px);
+    transition: opacity 0.3s ease;
+}
+.viewer-img {
+    max-height: 80vh;
+    box-shadow: 0 0 50px rgba(0,0,0,0.8);
+    border: 2px solid rgba(255,255,255,0.1);
+}
 
     </style>
 </head>
@@ -364,7 +445,13 @@
 <button id="mio-music-toggle" class="mio-music-btn" onclick="togglePortalMusic()" title="Play/Pause Background Music">
     <i class="fas fa-volume-mute" id="mio-music-icon"></i>
 </button>            
-
+<div class="flex flex-wrap justify-center gap-4 mb-6">
+    <a href="javascript:void(0)" 
+       onclick="triggerAccessSound('#organization-members')" 
+       class="px-8 py-3 bg-transparent border-2 border-purple-500 text-purple-400 text-sm font-black rounded-full hover:bg-purple-500 hover:text-white transition-all shadow-[0_0_15px_rgba(168,85,247,0.2)] uppercase tracking-widest flex items-center gap-2">
+        <i class="fas fa-users"></i> VIEW TEAM
+    </a>
+</div>
             <div class="flex flex-wrap justify-center gap-4">
     <a href="javascript:void(0)" 
        onclick="triggerAccessSound('#projects')" 
@@ -375,7 +462,27 @@
 
         </div>
     </section>
+<section id="organization-members" class="member-section max-w-7xl mx-auto mt-20">
+    <div class="text-center mb-16 relative z-10" data-aos="fade-up">
+        <h2 class="text-3xl md:text-5xl font-black mb-4">OUR <span class="text-transparent bg-clip-text bg-gradient-to-r from-purple-500 to-cyan-500">PIONEERS</span></h2>
+        <p class="text-gray-400 font-mono tracking-widest text-sm uppercase">The minds behind Muslim Islam Organization</p>
+    </div>
+    
+    <div id="members-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-20 px-4">
+        <div class="text-center w-full col-span-full py-10 text-purple-400 font-mono animate-pulse">
+            <i class="fas fa-satellite-dish fa-spin text-4xl mb-4"></i><br>FETCHING TEAM PROFILES...
+        </div>
+    </div>
+</section>
 
+<div id="image-viewer-modal" class="fixed inset-0 bg-black/90 z-[99999] hidden flex-col items-center justify-center p-4 opacity-0">
+    <button onclick="closeImageViewer()" class="absolute top-6 right-6 text-white hover:text-purple-400 transition-colors z-50">
+        <i class="fas fa-times text-4xl"></i>
+    </button>
+    <img id="viewer-full-img" src="" class="viewer-img rounded-2xl transform scale-90 transition-transform duration-300" alt="Full View">
+    <h3 id="viewer-name" class="text-2xl font-black text-white mt-6 tracking-widest"></h3>
+    <p id="viewer-role" class="text-purple-400 font-mono uppercase text-sm mt-2"></p>
+</div>
     <section id="intel" class="py-16 max-w-7xl mx-auto relative z-10">
         <div class="text-center mb-12" data-aos="fade-up">
             <h3 class="text-xs font-mono text-green-400 tracking-[0.2em] mb-2">SYSTEM SCAN</h3>
@@ -983,6 +1090,95 @@ async function startUpdatingProcess(newVer) {
         window.location.replace(freshUrl); 
     }, 1200);
 }
+// ==========================================
+// 🚀 MIO MEMBERS FRONTEND ENGINE
+// ==========================================
+
+// Fetch Members and Render
+database.ref('organization_members').on('value', snap => {
+    const container = document.getElementById('members-container');
+    if(!container) return;
+    
+    container.innerHTML = '';
+    
+    if(!snap.exists()) {
+        container.innerHTML = `<p class="text-center w-full col-span-full text-gray-500 font-mono">No team profiles found.</p>`;
+        return;
+    }
+
+    snap.forEach(child => {
+        const m = child.val();
+        // Fallback image agar link toot jaye
+        const safeImage = m.imageLink || 'https://via.placeholder.com/150';
+        
+        container.innerHTML += `
+            <div class="member-card group" data-aos="fade-up">
+                
+                <div class="member-img-wrap" onclick="openImageViewer('${safeImage}', '${m.name}', '${m.role}')" title="Click to view full image">
+                    <img src="${safeImage}" alt="${m.name}">
+                    
+                    <div class="member-name-badge group-hover:bg-purple-500 group-hover:border-purple-400 transition-all">
+                        <span class="text-white font-black text-xs uppercase tracking-wider">${m.name}</span>
+                    </div>
+                </div>
+
+                <div class="mt-12 mb-4">
+                    <span class="inline-block px-3 py-1 bg-purple-500/10 border border-purple-500/20 text-purple-400 rounded-lg text-[10px] font-mono uppercase font-bold tracking-widest">
+                        <i class="fas fa-star text-[8px] mr-1"></i> ${m.role}
+                    </span>
+                </div>
+                
+                <p class="text-gray-400 text-sm leading-relaxed line-clamp-4 px-2">
+                    ${m.details}
+                </p>
+                
+                <div class="absolute inset-0 bg-gradient-to-b from-purple-500/0 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity rounded-24px pointer-events-none"></div>
+            </div>
+        `;
+    });
+});
+
+// ==========================================
+// 🖼️ FULL IMAGE VIEWER LOGIC
+// ==========================================
+function openImageViewer(imgSrc, name, role) {
+    // 1. Play Sound (if you want that digital feel)
+    if(clickSfxElement) {
+        clickSfxElement.currentTime = 0;
+        clickSfxElement.play().catch(e => console.log(e));
+    }
+
+    // 2. Setup Data
+    const modal = document.getElementById('image-viewer-modal');
+    const fullImg = document.getElementById('viewer-full-img');
+    document.getElementById('viewer-name').innerText = name;
+    document.getElementById('viewer-role').innerText = role;
+    
+    fullImg.src = imgSrc;
+    
+    // 3. Animate In
+    modal.classList.remove('hidden');
+    // Chota sa delay taake display block hone ke baad opacity transition ho
+    setTimeout(() => {
+        modal.classList.remove('opacity-0');
+        fullImg.classList.replace('scale-90', 'scale-100');
+    }, 10);
+}
+
+function closeImageViewer() {
+    const modal = document.getElementById('image-viewer-modal');
+    const fullImg = document.getElementById('viewer-full-img');
+    
+    // Animate Out
+    modal.classList.add('opacity-0');
+    fullImg.classList.replace('scale-100', 'scale-90');
+    
+    setTimeout(() => {
+        modal.classList.add('hidden');
+        fullImg.src = ''; // Clear image
+    }, 300);
+}
+
     </script>
 </body>
 </html>
