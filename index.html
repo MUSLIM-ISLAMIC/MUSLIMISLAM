@@ -941,34 +941,48 @@ async function startUpdatingProcess(newVer) {
     const statusText = document.getElementById('update-status');
     const updateBtn = document.getElementById('update-confirm-btn');
     
-    // UI changes
     updateBtn.disabled = true;
-    updateBtn.innerText = "UPDATING...";
-    updateBtn.style.opacity = "0.5";
+    updateBtn.innerText = "CLEANING SYSTEM...";
     
-    const steps = [
-        { p: 20, t: "Fetching manifests..." },
-        { p: 40, t: "Clearing browser cache..." },
-        { p: 65, t: "Injecting new scripts..." },
-        { p: 85, t: "Syncing Firebase database..." },
-        { p: 100, t: "Update Complete! Rebooting..." }
-    ];
-
-    for (let step of steps) {
-        await new Promise(r => setTimeout(r, 800)); // Har step pe thoda delay
-        progressBar.style.width = step.p + "%";
-        statusText.innerText = step.t;
+    // --- STEP 1: Browser Cache Storage ko khali karna ---
+    statusText.innerText = "Deleting permanent cache storage...";
+    if ('caches' in window) {
+        const cacheNames = await caches.keys();
+        await Promise.all(
+            cacheNames.map(name => {
+                console.log("Deleting Cache:", name);
+                return caches.delete(name);
+            })
+        );
     }
+    progressBar.style.width = "30%";
 
-    // Version update karein
+    // --- STEP 2: Service Workers ko khatam karna ---
+    statusText.innerText = "Unregistering old system workers...";
+    if ('serviceWorker' in navigator) {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        for (let registration of registrations) {
+            await registration.unregister();
+        }
+    }
+    progressBar.style.width = "60%";
+
+    // --- STEP 3: Local Storage Update ---
+    statusText.innerText = "Syncing new version manifest...";
     localStorage.setItem('mio_portal_version', newVer);
+    progressBar.style.width = "85%";
 
-    // Hard Refresh (Cache bypass karne ke liye URL change)
+    // --- STEP 4: Hard Reload with Cache-Busting Query ---
+    statusText.innerText = "Rebooting Portal...";
+    progressBar.style.width = "100%";
+
     setTimeout(() => {
-        window.location.href = window.location.origin + window.location.pathname + "?update=" + newVer;
-    }, 1000);
+        // window.location.reload(true) aksar kaam nahi karta, isliye URL change karein
+        // Is se browser majboor ho jata hai ke wo har cheez fresh download kare
+        const freshUrl = window.location.origin + window.location.pathname + "?v=" + newVer + "&t=" + Date.now();
+        window.location.replace(freshUrl); 
+    }, 1200);
 }
-
     </script>
 </body>
 </html>
