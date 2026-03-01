@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MIO MASTER CONTROL | Final Fixed</title>
+    <title>MIO MASTER CONTROL | ROOM</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -147,6 +147,17 @@
             </section>
 
             <section id="view-projects" class="hidden space-y-6">
+                <div class="glass-card p-6 border border-cyan-500/30 mt-6" id="audio-settings-box">
+    <h3 class="text-lg font-black text-cyan-400 mb-2"><i class="fas fa-music"></i> GLOBAL BACKGROUND MUSIC</h3>
+    <p class="text-[10px] text-gray-400 mb-4">MI Portal ke liye MP3/WAV link enter karein.</p>
+    
+    <input id="bg-music-link" type="text" placeholder="https://link-to-your-song.mp3" class="w-full bg-black/50 border border-white/10 rounded-xl p-3 text-white focus:border-cyan-400 mb-3 outline-none transition-all">
+    
+    <button onclick="updateGlobalMusic()" class="w-full bg-cyan-500 text-black font-bold py-3 rounded-xl hover:bg-cyan-400 shadow-[0_0_15px_rgba(0,229,255,0.3)] transition-all">
+        UPDATE MUSIC IN FIREBASE 🚀
+    </button>
+</div>
+
                 <div class="flex justify-between items-center bg-green-500/5 p-6 rounded-2xl border border-green-500/10">
                     <h2 class="text-xl font-black">PROJECT <span class="text-green-400">CONTROL</span></h2>
                     <button onclick="openProjectModal()" class="bg-green-500 text-black px-6 py-3 rounded-xl font-black text-xs hover:bg-green-400 transition shadow-lg shadow-green-500/20">
@@ -397,6 +408,36 @@
 
         function clearChat() { if(isLogged) db.ref('system_chat').remove(); }
         function clearAnalytics() { if(isLogged) db.ref('analytics/visitors').remove(); }
+// ==========================================
+// 🎵 MIO ADMIN AUDIO CONTROL ENGINE
+// ==========================================
+
+// Pehle se save kiya hua music link load karna
+db.ref('system_config/bg_music').on('value', (snapshot) => {
+    const currentLink = snapshot.val();
+    if(currentLink) {
+        document.getElementById('bg-music-link').value = currentLink;
+    }
+});
+
+// Naya music link Firebase me update karna
+function updateGlobalMusic() {
+    // Agar security key match nahi karti (Agar aapne auth lagaya hua hai)
+    // if(!isAdminAuthenticated) return alert("System Locked!");
+
+    const newLink = document.getElementById('bg-music-link').value.trim();
+    
+    if(newLink === "") {
+        Swal.fire({ icon: 'error', title: 'Empty Link', text: 'Please enter a valid MP3/WAV URL!', background: '#05070a', color: '#fff'});
+        return;
+    }
+
+    db.ref('system_config/bg_music').set(newLink).then(() => {
+        Swal.fire({ icon: 'success', title: 'AUDIO SYNCED! 🎶', text: 'Portal par music update ho gaya hai!', background: '#05070a', color: '#fff'});
+    }).catch((error) => {
+        console.error("Firebase Audio Update Error: ", error);
+    });
+}
 
     </script>
 </body>

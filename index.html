@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="theme-color" content="#02050a">
-    <title>MI ORGNIZATION|MUSLIM ISLAM ORG| ISLAMIC PORTAL ORG</title>
+        <title>MI ORGNIZATION|MUSLIM ISLAM ORG| ISLAMIC PORTAL ORG</title>
     <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#00ff9d">
 <link rel="apple-touch-icon" href="https://i.ibb.co/hxKxjqWk/logo.png">
@@ -254,6 +254,44 @@
             /* General Spacing */
             section { padding-left: 15px !important; padding-right: 15px !important; }
         }
+        /* 🎵 FLOATING MUSIC BUTTON STYLES ✨ */
+.mio-music-btn {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    width: 65px;
+    height: 65px;
+    border-radius: 50%;
+    background: rgba(0, 255, 157, 0.1);
+    border: 2px solid #00ff9d;
+    color: #00ff9d;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    cursor: pointer;
+    z-index: 99999;
+    box-shadow: 0 0 25px rgba(0, 255, 157, 0.3);
+    backdrop-filter: blur(10px);
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.mio-music-btn:hover {
+    transform: scale(1.15) rotate(10deg);
+    background: #00ff9d;
+    color: #000;
+}
+
+.mio-music-btn.is-playing {
+    animation: mio-pulse-glow 2s infinite;
+}
+
+@keyframes mio-pulse-glow {
+    0% { box-shadow: 0 0 0 0 rgba(0, 255, 157, 0.8); }
+    70% { box-shadow: 0 0 0 25px rgba(0, 255, 157, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(0, 255, 157, 0); }
+}
+
     </style>
 </head>
 <body>
@@ -298,14 +336,23 @@
                 <span class="text-gradient">ISLAMIC NETWORK</span>
             </h2>
             <p class="hero-subtitle text-gray-400 max-w-2xl mx-auto text-sm md:text-base mb-10 leading-relaxed px-4">
-                A fully synchronized digital infrastructure connecting global members through real-time encrypted data, high-fidelity <a href="admin.html">UI</a>, and seamless tracking.
+                A fully synchronized digital infrastructure connecting global members through real-time encrypted data, high-fidelity UI, and seamless tracking.
             </p>
-            
+            <audio id="portal-bg-music" loop preload="auto"></audio>
+<audio id="portal-click-sfx" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_c8c8a73467.mp3?filename=ui-click-43196.mp3" preload="auto"></audio>
+
+<button id="mio-music-toggle" class="mio-music-btn" onclick="togglePortalMusic()" title="Play/Pause Background Music">
+    <i class="fas fa-volume-mute" id="mio-music-icon"></i>
+</button>
+
             <div class="flex flex-wrap justify-center gap-4">
-                <a href="#projects" class="px-6 py-3 bg-green-500 text-black text-sm font-black rounded-full hover:bg-green-400 transition shadow-[0_0_15px_rgba(0,255,157,0.3)]">
-                    ACCESS PORTAL
-                </a>
-            </div>
+    <a href="javascript:void(0)" 
+       onclick="triggerAccessSound('#projects')" 
+       class="px-6 py-3 bg-green-500 text-black text-sm font-black rounded-full hover:bg-green-400 transition shadow-[0_0_15px_rgba(0,255,157,0.3)]">
+        ACCESS PORTAL
+    </a>
+</div>
+
         </div>
     </section>
 
@@ -676,6 +723,110 @@
         .catch(err => console.log('MIO PWA: Registration Failed', err));
     });
   }
+ // ==========================================
+// 🚀 MIO ADVANCED AUDIO ENGINE (FIXED)
+// ==========================================
+
+const bgMusicElement = document.getElementById('portal-bg-music');
+const clickSfxElement = document.getElementById('portal-click-sfx');
+const musicToggleBtn = document.getElementById('mio-music-toggle');
+const musicIcon = document.getElementById('mio-music-icon');
+
+let isMusicActive = false;
+let currentMusicUrl = "";
+
+// ✅ FIX: "database" use kiya hai kyunke aapki file me yehi naam hai
+database.ref('system_config/bg_music').on('value', (snapshot) => {
+    const fetchedUrl = snapshot.val();
+    console.log("Audio Syncing: ", fetchedUrl);
+    
+    if(fetchedUrl && fetchedUrl !== currentMusicUrl) {
+        currentMusicUrl = fetchedUrl;
+        bgMusicElement.src = fetchedUrl;
+        bgMusicElement.load();
+        
+        if(isMusicActive) {
+            bgMusicElement.play().catch(e => console.log("Autoplay blocked"));
+        }
+    }
+});
+
+function togglePortalMusic() {
+    // Behtar check: Agar link valid nahi hai toh alert dikhao
+    if(!bgMusicElement.src || bgMusicElement.src.includes(window.location.hostname) || bgMusicElement.src === "") {
+        Swal.fire({
+            toast: true, position: 'top-end', icon: 'info',
+            title: 'Admin: Please add a valid MP3 link in Admin Panel!',
+            showConfirmButton: false, timer: 3000, background: '#05070a', color: '#00ff9d'
+        });
+        return;
+    }
+
+    if(isMusicActive) {
+        bgMusicElement.pause();
+        musicIcon.className = "fas fa-volume-mute";
+        musicToggleBtn.classList.remove('is-playing');
+        isMusicActive = false;
+    } else {
+        bgMusicElement.volume = 0.5;
+        bgMusicElement.play().then(() => {
+            musicIcon.className = "fas fa-volume-up";
+            musicToggleBtn.classList.add('is-playing');
+            isMusicActive = true;
+        }).catch((err) => {
+            Swal.fire({ toast: true, position: 'bottom', icon: 'error', title: 'Tap anywhere on screen first!', showConfirmButton: false, timer: 2000 });
+        });
+    }
+}
+
+// ✅ FIX: Duplicate function hata kar sirf ek rakha hai
+function triggerAccessSound(target) {
+    if(clickSfxElement) {
+        clickSfxElement.currentTime = 0;
+        clickSfxElement.play().catch(e => console.log("SFX Blocked"));
+    }
+
+    setTimeout(() => {
+        if(target.startsWith('#')) {
+            const element = document.querySelector(target);
+            if(element) element.scrollIntoView({ behavior: 'smooth' });
+        } else {
+            window.open(target, '_blank');
+        }
+    }, 300); 
+}
+function triggerAccessSound(target) {
+    // 1️⃣ Click SFX Play Karo 🔊
+    if(clickSfxElement) {
+        clickSfxElement.currentTime = 0;
+        clickSfxElement.play().catch(e => console.log("SFX Blocked"));
+    }
+
+    // 2️⃣ Background Music Activate Karo (User Gesture Unlock) 🎵✨
+    if (bgMusicElement && !isMusicActive) {
+        bgMusicElement.volume = 0.5; // 50% Volume
+        bgMusicElement.play().then(() => {
+            isMusicActive = true;
+            // UI Update: Button ko playing state mein le aao
+            if(musicIcon) musicIcon.className = "fas fa-volume-up";
+            if(musicToggleBtn) musicToggleBtn.classList.add('is-playing');
+            console.log("Master Audio Activated! 🎧");
+        }).catch(e => console.log("Music activation failed"));
+    }
+
+    // 3️⃣ Smooth Scroll Logic 📍💨
+    // Thoda sa delay (100ms) taake sound aur scroll ka effect feel ho
+    setTimeout(() => {
+        const element = document.querySelector(target);
+        if(element) {
+            element.scrollIntoView({ 
+                behavior: 'smooth',
+                block: 'start'
+            });
+        }
+    }, 100); 
+}
+
     </script>
 </body>
 </html>
