@@ -157,6 +157,16 @@
         UPDATE MUSIC IN FIREBASE 🚀
     </button>
 </div>
+<div class="glass-card p-6 border border-yellow-500/30 mt-6">
+    <h3 class="text-lg font-black text-yellow-400 mb-2"><i class="fas fa-code-branch"></i> SYSTEM VERSION CONTROL</h3>
+    <p class="text-[10px] text-gray-400 mb-4">Update push karne ke liye naya version number likhein.</p>
+    
+    <input id="system-version-input" type="text" placeholder="e.g. 1.0.5" class="w-full bg-black/50 border border-white/10 rounded-xl p-3 text-white mb-3">
+    
+    <button onclick="pushSystemUpdate()" class="w-full bg-yellow-500 text-black font-bold py-3 rounded-xl hover:bg-yellow-400 transition-all">
+        PUSH UPDATE TO ALL USERS 🚀
+    </button>
+</div>
 
                 <div class="flex justify-between items-center bg-green-500/5 p-6 rounded-2xl border border-green-500/10">
                     <h2 class="text-xl font-black">PROJECT <span class="text-green-400">CONTROL</span></h2>
@@ -436,6 +446,20 @@ function updateGlobalMusic() {
         Swal.fire({ icon: 'success', title: 'AUDIO SYNCED! 🎶', text: 'Portal par music update ho gaya hai!', background: '#05070a', color: '#fff'});
     }).catch((error) => {
         console.error("Firebase Audio Update Error: ", error);
+    });
+}
+// Version load karna
+db.ref('system_config/app_version').on('value', (snapshot) => {
+    if(snapshot.val()) document.getElementById('system-version-input').value = snapshot.val();
+});
+
+// Naya version set karna
+function pushSystemUpdate() {
+    const newVer = document.getElementById('system-version-input').value.trim();
+    if(newVer === "") return alert("Version number lazmi likhein!");
+
+    db.ref('system_config/app_version').set(newVer).then(() => {
+        Swal.fire({ icon: 'success', title: 'UPDATE DEPLOYED!', text: 'Sab users ko update ka notification chala jayega.', background: '#05070a', color: '#fff'});
     });
 }
 

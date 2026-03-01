@@ -295,6 +295,26 @@
     </style>
 </head>
 <body>
+<div id="update-overlay" class="fixed inset-0 bg-[#05070a]/95 backdrop-blur-xl z-[100000] hidden flex items-center justify-center p-6">
+    <div class="max-w-md w-full glass-panel p-8 border border-cyan-500/30 text-center animate__animated animate__zoomIn">
+        <div class="w-20 h-20 bg-cyan-500/20 rounded-full flex items-center justify-center mx-auto mb-6 shadow-[0_0_30px_rgba(0,255,157,0.2)]">
+            <i class="fas fa-cloud-download-alt text-3-xl text-cyan-400 animate-bounce"></i>
+        </div>
+        
+        <h2 class="text-2xl font-black text-white mb-2 uppercase tracking-tighter">New Update Detected!</h2>
+        <p id="update-ver-text" class="text-cyan-400 font-mono text-sm mb-6">Version: 1.0.0</p>
+        
+        <div class="w-full bg-white/5 rounded-full h-2 mb-4 overflow-hidden">
+            <div id="update-progress" class="h-full bg-gradient-to-r from-cyan-500 to-green-500 w-0 transition-all duration-300"></div>
+        </div>
+        
+        <p id="update-status" class="text-gray-400 text-[10px] uppercase tracking-widest mb-6">Initializing Cache Buster...</p>
+        
+        <button id="update-confirm-btn" class="w-full py-4 bg-cyan-500 text-black font-black rounded-xl hover:bg-cyan-400 transition-all shadow-lg uppercase tracking-widest">
+            UPDATE NOW ⚡
+        </button>
+    </div>
+</div>
 
     <div id="particles-js"></div>
 
@@ -825,6 +845,128 @@ function triggerAccessSound(target) {
             });
         }
     }, 100); 
+}
+// ==========================================
+// 🚀 MIO SMART UPDATE & CACHE BUSTER
+// ==========================================
+
+const localVersion = localStorage.getItem('mio_portal_version') || '0.0.0';
+
+database.ref('system_config/app_version').on('value', (snapshot) => {
+    const serverVersion = snapshot.val();
+
+    if (serverVersion && serverVersion !== localVersion) {
+        // Agar version match nahi karta, toh update dikhao
+        showUpdateNotification(serverVersion);
+    }
+});
+
+function showUpdateNotification(newVer) {
+    Swal.fire({
+        title: 'NEW UPDATE AVAILABLE! 🚀',
+        html: `<p style="color: #ccc;">System Version <b>${newVer}</b> is now live. Click update to clear cache and sync data.</p>`,
+        icon: 'info',
+        showCancelButton: false,
+        confirmButtonText: 'UPDATE NOW ⚡',
+        background: '#05070a',
+        color: '#fff',
+        confirmButtonColor: '#00ff9d',
+        allowOutsideClick: false
+    }).then((result) => {
+        if (result.isConfirmed) {
+            applySystemUpdate(newVer);
+        }
+    });
+}
+
+async function applySystemUpdate(newVer) {
+    // 1. Local Storage mein naya version save karo
+    localStorage.setItem('mio_portal_version', newVer);
+
+    // 2. Browser Cache Clear karne ki koshish (Service Workers)
+    if ('serviceWorker' in navigator) {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        for (let registration of registrations) {
+            registration.unregister();
+        }
+    }
+
+    // 3. Sab se aham: Hard Reload (Cache bypass karke)
+    // Ye browser ko majboor karta hai ke wo nayi files download kare
+    Swal.fire({
+        title: 'Syncing Files...',
+        text: 'Please wait, clearing cache...',
+        allowOutsideClick: false,
+        didOpen: () => { Swal.showLoading(); }
+    });
+
+    setTimeout(() => {
+        // window.location.reload(true) purana tarika hai, ab ye best hai:
+        window.location.href = window.location.href + "?v=" + newVer; 
+    }, 1500);
+}
+// ==========================================
+// 🚀 MIO ADVANCED UPDATE & CACHE ENGINE
+// ==========================================
+
+// 1. Current version check (LocalStorage)
+const currentLocalVer = localStorage.getItem('mio_portal_version') || '1.0.0';
+
+// 2. Firebase se version monitor karna
+database.ref('system_config/app_version').on('value', (snapshot) => {
+    const serverVer = snapshot.val();
+    
+    if (serverVer && serverVer !== currentLocalVer) {
+        showUpdateBox(serverVer);
+    }
+});
+
+// 3. Update Box Show karna
+function showUpdateBox(newVer) {
+    const overlay = document.getElementById('update-overlay');
+    const verText = document.getElementById('update-ver-text');
+    const updateBtn = document.getElementById('update-confirm-btn');
+    
+    overlay.classList.remove('hidden');
+    verText.innerText = `NEW VERSION DETECTED: ${newVer}`;
+    
+    updateBtn.onclick = function() {
+        startUpdatingProcess(newVer);
+    };
+}
+
+// 4. Updating Animation aur Cache Cleaning
+async function startUpdatingProcess(newVer) {
+    const progressBar = document.getElementById('update-progress');
+    const statusText = document.getElementById('update-status');
+    const updateBtn = document.getElementById('update-confirm-btn');
+    
+    // UI changes
+    updateBtn.disabled = true;
+    updateBtn.innerText = "UPDATING...";
+    updateBtn.style.opacity = "0.5";
+    
+    const steps = [
+        { p: 20, t: "Fetching manifests..." },
+        { p: 40, t: "Clearing browser cache..." },
+        { p: 65, t: "Injecting new scripts..." },
+        { p: 85, t: "Syncing Firebase database..." },
+        { p: 100, t: "Update Complete! Rebooting..." }
+    ];
+
+    for (let step of steps) {
+        await new Promise(r => setTimeout(r, 800)); // Har step pe thoda delay
+        progressBar.style.width = step.p + "%";
+        statusText.innerText = step.t;
+    }
+
+    // Version update karein
+    localStorage.setItem('mio_portal_version', newVer);
+
+    // Hard Refresh (Cache bypass karne ke liye URL change)
+    setTimeout(() => {
+        window.location.href = window.location.origin + window.location.pathname + "?update=" + newVer;
+    }, 1000);
 }
 
     </script>
