@@ -1265,59 +1265,126 @@ function closeImageViewer() {
         fullImg.src = ''; // Clear image
     }, 300);
 }
+// ==========================================
+// 🚀 LAUNCHPAD (UPCOMING PROJECTS) ENGINE
+// ==========================================
 database.ref('scheduled_launches').on('value', snap => {
     const grid = document.getElementById('launch-grid');
     const section = document.getElementById('mi-launchpad');
+    
+    // Purane timers clear karein (Memory safety ke liye)
+    if(window.launchIntervals) {
+        window.launchIntervals.forEach(clearInterval);
+    }
+    window.launchIntervals = [];
+
     grid.innerHTML = '';
     
-    if(!snap.exists()) { section.classList.add('hidden'); return; }
+    if(!snap.exists()) { 
+        section.classList.add('hidden'); 
+        return; 
+    }
     section.classList.remove('hidden');
 
     snap.forEach(child => {
         const p = child.val();
         const launchID = child.key;
         
+        // HTML Template with Active Button
         grid.innerHTML += `
             <div class="glass-panel p-8 relative border-t-4 border-t-yellow-500 animate__animated animate__fadeInUp">
                 <div class="flex items-center gap-6 mb-6">
-                    <img src="${p.logo}" class="w-20 h-20 rounded-2xl border-2 border-yellow-500/20 shadow-2xl">
+                    <img src="${p.logo}" class="w-20 h-20 rounded-2xl border-2 border-yellow-500/20 shadow-2xl object-cover">
                     <div>
-                        <h3 class="text-2xl font-black text-white">${p.title}</h3>
+                        <h3 class="text-2xl font-black text-white uppercase tracking-tighter">${p.title}</h3>
                         <div class="px-3 py-1 bg-yellow-500/10 border border-yellow-500/20 rounded-full text-[9px] font-black text-yellow-500 uppercase tracking-widest w-fit mt-2">
                             PRE-LAUNCH PHASE
                         </div>
                     </div>
                 </div>
-                <p class="text-gray-400 text-sm mb-8 leading-relaxed">${p.desc}</p>
+                <p class="text-gray-400 text-sm mb-8 leading-relaxed h-12 overflow-hidden">${p.desc}</p>
                 
-                <div class="digital-clock mb-8">
-                    <div class="text-center"><div class="clock-val" id="d-${launchID}">00</div><div class="clock-label">Day</div></div>
-                    <div class="text-center"><div class="clock-val" id="h-${launchID}">00</div><div class="clock-label">Hrs</div></div>
-                    <div class="text-center"><div class="clock-val" id="m-${launchID}">00</div><div class="clock-label">Min</div></div>
-                    <div class="text-center"><div class="clock-val" id="s-${launchID}">00</div><div class="clock-label">Sec</div></div>
+                <div class="grid grid-cols-4 gap-4 mb-8">
+                    <div class="text-center bg-black/40 p-3 rounded-xl border border-white/5">
+                        <div class="text-xl font-black text-yellow-500" id="d-${launchID}">00</div>
+                        <div class="text-[8px] text-gray-500 uppercase font-bold">Days</div>
+                    </div>
+                    <div class="text-center bg-black/40 p-3 rounded-xl border border-white/5">
+                        <div class="text-xl font-black text-yellow-500" id="h-${launchID}">00</div>
+                        <div class="text-[8px] text-gray-500 uppercase font-bold">Hrs</div>
+                    </div>
+                    <div class="text-center bg-black/40 p-3 rounded-xl border border-white/5">
+                        <div class="text-xl font-black text-yellow-500" id="m-${launchID}">00</div>
+                        <div class="text-[8px] text-gray-500 uppercase font-bold">Min</div>
+                    </div>
+                    <div class="text-center bg-black/40 p-3 rounded-xl border border-white/5">
+                        <div class="text-xl font-black text-yellow-500" id="s-${launchID}">00</div>
+                        <div class="text-[8px] text-gray-500 uppercase font-bold">Sec</div>
+                    </div>
                 </div>
 
-                <button disabled class="w-full py-4 bg-white/5 border border-white/10 text-gray-500 rounded-xl font-black text-xs uppercase tracking-widest cursor-not-allowed">
-                    LINK ENCRYPTED UNTIL LAUNCH
+                <button onclick="triggerLaunchAccess('${p.link}')" class="w-full py-4 bg-yellow-500/10 border border-yellow-500/50 text-yellow-500 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-yellow-500 hover:text-black transition-all shadow-[0_0_20px_rgba(234,179,8,0.2)] group">
+                    <i class="fas fa-external-link-alt mr-2 group-hover:animate-bounce"></i> ACCESS PORTAL
                 </button>
             </div>
         `;
 
-        // Start Clock
-        setInterval(() => {
+        // Real-time Countdown logic
+        const timer = setInterval(() => {
             const now = new Date().getTime();
             const target = new Date(p.time).getTime();
             const diff = target - now;
             
             if(diff > 0) {
-                document.getElementById(`d-${launchID}`).innerText = Math.floor(diff / (1000 * 60 * 60 * 24)).toString().padStart(2,'0');
-                document.getElementById(`h-${launchID}`).innerText = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)).toString().padStart(2,'0');
-                document.getElementById(`m-${launchID}`).innerText = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60)).toString().padStart(2,'0');
-                document.getElementById(`s-${launchID}`).innerText = Math.floor((diff % (1000 * 60)) / 1000).toString().padStart(2,'0');
+                const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+                const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+                const dEl = document.getElementById(`d-${launchID}`);
+                const hEl = document.getElementById(`h-${launchID}`);
+                const mEl = document.getElementById(`m-${launchID}`);
+                const sEl = document.getElementById(`s-${launchID}`);
+
+                if(dEl) dEl.innerText = days.toString().padStart(2,'0');
+                if(hEl) hEl.innerText = hours.toString().padStart(2,'0');
+                if(mEl) mEl.innerText = minutes.toString().padStart(2,'0');
+                if(sEl) sEl.innerText = seconds.toString().padStart(2,'0');
+            } else {
+                // Agar time khatam ho jaye to "SYSTEM ONLINE" dikhao
+                const clockBox = document.getElementById(`d-${launchID}`)?.parentElement?.parentElement;
+                if(clockBox) clockBox.innerHTML = `<div class="col-span-4 text-center py-2 text-green-400 font-black tracking-widest animate-pulse">SYSTEM DEPLOYED & ONLINE</div>`;
+                clearInterval(timer);
             }
         }, 1000);
+        
+        window.launchIntervals.push(timer);
     });
 });
+
+// Helper Function for Sound & Redirect
+function triggerLaunchAccess(url) {
+    // Play Click Sound if exists
+    const sfx = document.getElementById('click-sfx');
+    if(sfx) {
+        sfx.currentTime = 0;
+        sfx.play().catch(e => console.log("SFX Playback blocked"));
+    }
+    
+    // Direct Redirect
+    if(url) {
+        window.open(url, '_blank');
+    } else {
+        Swal.fire({
+            title: 'ENCRYPTION ERROR',
+            text: 'Project portal link not found in database.',
+            icon: 'warning',
+            background: '#05070a',
+            color: '#fff',
+            confirmButtonColor: '#eab308'
+        });
+    }
+}
 // ==========================================
 // 🚀 MIO DIGITAL PROJECT LAUNCHER ENGINE
 // ==========================================
