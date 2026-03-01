@@ -89,6 +89,10 @@
             <button onclick="switchTab('members')" id="tab-btn-members" class="sidebar-item w-full flex items-center gap-4 px-5 py-4 rounded-xl text-sm font-bold text-purple-400 hover:bg-purple-500/10 transition-all">
     <i class="fas fa-users-cog w-5"></i> Member Control
 </button>
+<button onclick="switchTab('launcher')" id="tab-btn-launcher" class="sidebar-item w-full flex items-center gap-4 px-5 py-4 rounded-xl text-sm font-bold">
+    <i class="fas fa-rocket w-5 text-yellow-400"></i> Project Launcher
+</button>
+
 
             <button onclick="switchTab('security')" id="tab-btn-security" class="sidebar-item w-full flex items-center gap-4 px-5 py-4 rounded-xl text-sm font-bold">
                 <i class="fas fa-key w-5"></i> Security Auth
@@ -151,6 +155,7 @@
             </section>
 
             <section id="view-projects" class="hidden space-y-6">
+                
                 <div class="glass-card p-6 border border-cyan-500/30 mt-6" id="audio-settings-box">
     <h3 class="text-lg font-black text-cyan-400 mb-2"><i class="fas fa-music"></i> GLOBAL BACKGROUND MUSIC</h3>
     <p class="text-[10px] text-gray-400 mb-4">MI Portal ke liye MP3/WAV link enter karein.</p>
@@ -253,6 +258,52 @@
         </div>
     </div>
 </div>
+<section id="view-launcher" class="hidden space-y-6">
+    <div class="glass-card p-8 border border-yellow-500/30 relative overflow-hidden">
+        <div class="absolute top-0 right-0 p-4 opacity-10"><i class="fas fa-rocket text-8xl"></i></div>
+        <h2 class="text-2xl font-black text-white mb-6 uppercase tracking-widest flex items-center gap-3">
+            <span class="p-2 bg-yellow-500/20 rounded-lg text-yellow-500"><i class="fas fa-clock"></i></span>
+            Schedule New Launch
+        </h2>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="space-y-4">
+                <div>
+                    <label class="text-[10px] text-gray-500 font-black uppercase ml-1">Project Name</label>
+                    <input id="launch-title" type="text" placeholder="e.g. MiTV V2.0" class="w-full input-field p-4 rounded-xl text-sm font-bold">
+                </div>
+                <div>
+                    <label class="text-[10px] text-gray-500 font-black uppercase ml-1">Logo URL</label>
+                    <input id="launch-logo" type="text" placeholder="https://..." class="w-full input-field p-4 rounded-xl text-sm font-bold">
+                </div>
+                <div>
+                    <label class="text-[10px] text-gray-500 font-black uppercase ml-1">Launch Countdown (Date & Time)</label>
+                    <input id="launch-date" type="datetime-local" class="w-full input-field p-4 rounded-xl text-sm font-bold text-yellow-400">
+                </div>
+            </div>
+            <div class="space-y-4">
+                <div>
+                    <label class="text-[10px] text-gray-500 font-black uppercase ml-1">Access Link</label>
+                    <input id="launch-link" type="text" placeholder="https://..." class="w-full input-field p-4 rounded-xl text-sm font-bold">
+                </div>
+                <div>
+                    <label class="text-[10px] text-gray-500 font-black uppercase ml-1">Short Description</label>
+                    <textarea id="launch-desc" rows="4" placeholder="Describe the upcoming deployment..." class="w-full input-field p-4 rounded-xl text-sm"></textarea>
+                </div>
+            </div>
+        </div>
+
+        <button onclick="saveLaunchProject()" class="w-full mt-6 py-4 bg-yellow-500 text-black font-black rounded-xl hover:bg-yellow-400 transition-all shadow-lg shadow-yellow-500/20 uppercase tracking-widest flex items-center justify-center gap-3">
+            <i class="fas fa-paper-plane"></i> DEPLOY TO LAUNCHPAD
+        </button>
+    </div>
+
+    <div id="active-launch-status" class="glass-card p-6 border border-green-500/20">
+        <h3 class="text-xs font-black text-gray-500 uppercase tracking-widest mb-4">Current Scheduled Mission</h3>
+        <div id="launcher-preview-list" class="space-y-4">
+            </div>
+    </div>
+</section>
 
             <section id="view-security" class="hidden">
                 <div class="max-w-md mx-auto glass-card p-10 text-center space-y-6">
@@ -624,6 +675,45 @@ function deleteMember(id) {
         }
     });
 }
+function saveLaunchProject() {
+    const payload = {
+        title: document.getElementById('launch-title').value,
+        logo: document.getElementById('launch-logo').value,
+        link: document.getElementById('launch-link').value,
+        desc: document.getElementById('launch-desc').value,
+        time: document.getElementById('launch-date').value,
+        status: 'upcoming'
+    };
+
+    if(!payload.title || !payload.time) return Swal.fire('Error', 'Title and Time are mandatory!', 'error');
+
+    db.ref('scheduled_launches').push(payload).then(() => {
+        Swal.fire('LAUNCH SET! 🚀', 'Project added to Launchpad', 'success');
+        // Clear inputs
+        ['launch-title', 'launch-logo', 'launch-link', 'launch-desc', 'launch-date'].forEach(id => document.getElementById(id).value = '');
+    });
+}
+
+// Load preview in admin
+db.ref('scheduled_launches').on('value', snap => {
+    const list = document.getElementById('launcher-preview-list');
+    list.innerHTML = '';
+    snap.forEach(child => {
+        const d = child.val();
+        list.innerHTML += `
+            <div class="flex items-center justify-between bg-black/40 p-4 rounded-xl border border-white/5">
+                <div class="flex items-center gap-4">
+                    <img src="${d.logo}" class="w-10 h-10 rounded-lg">
+                    <div>
+                        <h4 class="text-sm font-bold text-white">${d.title}</h4>
+                        <p class="text-[10px] text-yellow-500 font-mono">${d.time}</p>
+                    </div>
+                </div>
+                <button onclick="db.ref('scheduled_launches/${child.key}').remove()" class="text-red-500 text-xs hover:underline">CANCEL</button>
+            </div>
+        `;
+    });
+});
 
     </script>
 </body>

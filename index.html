@@ -372,6 +372,18 @@
     box-shadow: 0 0 50px rgba(0,0,0,0.8);
     border: 2px solid rgba(255,255,255,0.1);
 }
+.digital-clock {
+    background: rgba(0,0,0,0.8);
+    border: 1px solid rgba(255, 215, 0, 0.2);
+    display: flex;
+    gap: 10px;
+    padding: 15px;
+    border-radius: 12px;
+    justify-content: center;
+    box-shadow: inset 0 0 20px rgba(255, 215, 0, 0.05);
+}
+.clock-val { font-family: 'JetBrains Mono', monospace; font-size: 24px; color: #fbbf24; font-weight: 900; }
+.clock-label { font-size: 8px; color: #71717a; text-transform: uppercase; font-weight: bold; }
 
     </style>
 </head>
@@ -515,6 +527,17 @@
             </div>
         </div>
     </section>
+<section id="mi-launchpad" class="max-w-7xl mx-auto px-4 py-20 hidden">
+    <div class="text-center mb-12">
+        <h2 class="text-4xl md:text-6xl font-black tracking-tighter text-white uppercase italic">
+            NEXT <span class="text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-orange-500 underline decoration-yellow-500/30">GEN</span> DEPLOYMENTS
+        </h2>
+        <p class="text-[10px] font-mono text-yellow-500/60 mt-2 tracking-[0.5em] uppercase">Status: Satellite Link Established</p>
+    </div>
+
+    <div id="launch-grid" class="grid grid-cols-1 md:grid-cols-2 gap-8">
+        </div>
+</section>
 
     <section id="projects" class="py-16 max-w-7xl mx-auto relative z-10 px-4">
         <div class="flex flex-col md:flex-row justify-between items-center mb-10" data-aos="fade-right">
@@ -1178,6 +1201,59 @@ function closeImageViewer() {
         fullImg.src = ''; // Clear image
     }, 300);
 }
+db.ref('scheduled_launches').on('value', snap => {
+    const grid = document.getElementById('launch-grid');
+    const section = document.getElementById('mi-launchpad');
+    grid.innerHTML = '';
+    
+    if(!snap.exists()) { section.classList.add('hidden'); return; }
+    section.classList.remove('hidden');
+
+    snap.forEach(child => {
+        const p = child.val();
+        const launchID = child.key;
+        
+        grid.innerHTML += `
+            <div class="glass-panel p-8 relative border-t-4 border-t-yellow-500 animate__animated animate__fadeInUp">
+                <div class="flex items-center gap-6 mb-6">
+                    <img src="${p.logo}" class="w-20 h-20 rounded-2xl border-2 border-yellow-500/20 shadow-2xl">
+                    <div>
+                        <h3 class="text-2xl font-black text-white">${p.title}</h3>
+                        <div class="px-3 py-1 bg-yellow-500/10 border border-yellow-500/20 rounded-full text-[9px] font-black text-yellow-500 uppercase tracking-widest w-fit mt-2">
+                            PRE-LAUNCH PHASE
+                        </div>
+                    </div>
+                </div>
+                <p class="text-gray-400 text-sm mb-8 leading-relaxed">${p.desc}</p>
+                
+                <div class="digital-clock mb-8">
+                    <div class="text-center"><div class="clock-val" id="d-${launchID}">00</div><div class="clock-label">Day</div></div>
+                    <div class="text-center"><div class="clock-val" id="h-${launchID}">00</div><div class="clock-label">Hrs</div></div>
+                    <div class="text-center"><div class="clock-val" id="m-${launchID}">00</div><div class="clock-label">Min</div></div>
+                    <div class="text-center"><div class="clock-val" id="s-${launchID}">00</div><div class="clock-label">Sec</div></div>
+                </div>
+
+                <button disabled class="w-full py-4 bg-white/5 border border-white/10 text-gray-500 rounded-xl font-black text-xs uppercase tracking-widest cursor-not-allowed">
+                    LINK ENCRYPTED UNTIL LAUNCH
+                </button>
+            </div>
+        `;
+
+        // Start Clock
+        setInterval(() => {
+            const now = new Date().getTime();
+            const target = new Date(p.time).getTime();
+            const diff = target - now;
+            
+            if(diff > 0) {
+                document.getElementById(`d-${launchID}`).innerText = Math.floor(diff / (1000 * 60 * 60 * 24)).toString().padStart(2,'0');
+                document.getElementById(`h-${launchID}`).innerText = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)).toString().padStart(2,'0');
+                document.getElementById(`m-${launchID}`).innerText = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60)).toString().padStart(2,'0');
+                document.getElementById(`s-${launchID}`).innerText = Math.floor((diff % (1000 * 60)) / 1000).toString().padStart(2,'0');
+            }
+        }, 1000);
+    });
+});
 
     </script>
 </body>
