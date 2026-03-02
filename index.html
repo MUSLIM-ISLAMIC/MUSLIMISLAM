@@ -1451,94 +1451,130 @@ function triggerLaunchAccess(url) {
         });
     }
 }
-// ==========================================
-// 🚀 MIO DIGITAL PROJECT LAUNCHER (SMOOTH VERSION)
-// ==========================================
+// ==========================================================================
+// 🚀 MIO DIGITAL PROJECT LAUNCHER & ACTIVE NODES ENGINE (STABLE VERSION 2.0)
+// ==========================================================================
+// Author: Gemini for Muaaz Iqbal (MiTV Network)
+// Description: Optimized to prevent flickering, jumping, and auto-reload issues.
 
-let countdownIntervals = {}; 
+let countdownIntervals = {}; // Har project ka timer save rakhne ke liye
 
 database.ref('organization_projects').on('value', snap => {
     const launcherContainer = document.getElementById('launcher-container');
     const projectsContainer = document.getElementById('projects-container');
     const launchPadSection = document.getElementById('launch-pad-section');
     
-    // Agar containers nahi hain toh return kar jayein
     if(!launcherContainer || !projectsContainer) return;
 
-    // Purane timers clear karein
+    // Purane sab timers clear karo taake memory leak na ho
     Object.values(countdownIntervals).forEach(clearInterval);
     countdownIntervals = {};
 
     let hasUpcoming = false;
     let projectsArray = [];
 
+    if(!snap.exists()) {
+        projectsContainer.innerHTML = `<p class="text-center w-full text-gray-500 font-mono col-span-full">No active nodes found in databank.</p>`;
+        if(launchPadSection) launchPadSection.classList.add('hidden');
+        return;
+    }
+
+    // Firebase data ko array mein convert aur sort karein
     snap.forEach(child => {
         let p = child.val();
         p.id = child.key;
         projectsArray.push(p);
     });
 
-    // Pinned projects ko upar rakhein
+    // 📌 Sort Logic: PINNED projects upar, baqi niche
     projectsArray.sort((a, b) => (a.isPinned === b.isPinned) ? 0 : a.isPinned ? -1 : 1);
 
     const now = new Date().getTime();
-
-    // Pehle se mojood HTML ko save rakhne ke liye strings
-    let launcherHTML = '';
-    let projectsHTML = '';
+    let newLauncherHTML = '';
+    let newProjectsHTML = '';
 
     projectsArray.forEach(p => {
         const starCount = p.stars || 0;
-        const pinnedHtml = p.isPinned ? `<div class="pinned-badge">PINNED</div>` : ``;
+        const pinnedHtml = p.isPinned ? `
+            <div class="absolute top-6 -right-10 bg-gradient-to-r from-cyan-400 to-blue-500 text-black font-black text-[10px] uppercase tracking-widest px-10 py-1.5 transform rotate-45 shadow-[0_0_15px_rgba(6,182,212,0.5)] z-20">
+                PINNED NODE
+            </div>` : ``;
         
         let launchTimestamp = p.launchTime ? new Date(p.launchTime).getTime() : 0;
         let isUpcoming = (launchTimestamp > now);
 
         if (isUpcoming) {
             hasUpcoming = true;
-            launcherHTML += `
-                <div class="glass-panel p-8 relative overflow-hidden border border-yellow-500/30 shadow-[0_0_30px_rgba(255,193,7,0.05)] transform hover:scale-[1.02] transition-all duration-500">
-                    <div class="absolute -top-20 -right-20 w-48 h-48 bg-yellow-500/10 rounded-full blur-3xl"></div>
+            newLauncherHTML += `
+                <div class="glass-panel p-8 relative overflow-hidden border border-yellow-500/30 shadow-[0_0_30px_rgba(255,193,7,0.05)] transform hover:scale-[1.02] transition-all duration-500 group">
+                    <div class="absolute -top-20 -right-20 w-48 h-48 bg-yellow-500/10 rounded-full blur-3xl group-hover:bg-yellow-500/20 transition-colors"></div>
                     ${pinnedHtml}
+                    
                     <div class="flex items-center gap-5 mb-4 relative z-10">
-                        <img src="${p.logoLink}" class="w-20 h-20 rounded-2xl object-cover border-2 border-yellow-500/50" onerror="this.src='https://via.placeholder.com/150'">
+                        <img src="${p.logoLink}" class="w-20 h-20 rounded-2xl object-cover border-2 border-yellow-500/50 shadow-[0_0_15px_rgba(255,193,7,0.3)]" onerror="this.src='https://via.placeholder.com/150'">
                         <div>
                             <h3 class="text-2xl font-black text-white mb-1 uppercase tracking-wider">${p.title}</h3>
-                            <div id="status-badge-${p.id}" class="inline-flex items-center gap-2 px-3 py-1 bg-yellow-500/10 text-yellow-400 border border-yellow-500/30 rounded-lg text-xs font-mono font-bold tracking-widest">
+                            <div id="status-badge-${p.id}" class="inline-flex items-center gap-2 px-3 py-1 bg-yellow-500/10 text-yellow-400 border border-yellow-500/30 rounded-lg text-xs font-mono font-bold tracking-widest transition-all">
                                 <i class="fas fa-lock"></i> SYSTEM LOCKED
                             </div>
                         </div>
                     </div>
-                    <p class="text-gray-400 text-sm mb-4 relative z-10 line-clamp-2">${p.description}</p>
-                    <div class="countdown-box mb-6" id="countdown-box-${p.id}">
-                        <div class="time-segment"><div class="time-val" id="days-${p.id}">00</div><div class="time-label">DAYS</div></div>
-                        <div class="time-segment"><div class="time-val" id="hours-${p.id}">00</div><div class="time-label">HRS</div></div>
-                        <div class="time-segment"><div class="time-val" id="mins-${p.id}">00</div><div class="time-label">MIN</div></div>
-                        <div class="time-segment"><div class="time-val" id="secs-${p.id}">00</div><div class="time-label">SEC</div></div>
+                    
+                    <p class="text-gray-400 text-sm mb-6 relative z-10 h-10 overflow-hidden">${p.description}</p>
+                    
+                    <div class="flex justify-center gap-3 mb-6 relative z-10" id="countdown-box-${p.id}">
+                        <div class="bg-black/60 border border-yellow-500/20 rounded-xl p-3 min-w-[60px] text-center shadow-inner">
+                            <div class="font-mono text-2xl font-black text-yellow-500" id="days-${p.id}">00</div>
+                            <div class="text-[8px] text-gray-500 uppercase font-black tracking-widest mt-1">DAYS</div>
+                        </div>
+                        <div class="bg-black/60 border border-yellow-500/20 rounded-xl p-3 min-w-[60px] text-center shadow-inner">
+                            <div class="font-mono text-2xl font-black text-yellow-500" id="hours-${p.id}">00</div>
+                            <div class="text-[8px] text-gray-500 uppercase font-black tracking-widest mt-1">HRS</div>
+                        </div>
+                        <div class="bg-black/60 border border-yellow-500/20 rounded-xl p-3 min-w-[60px] text-center shadow-inner">
+                            <div class="font-mono text-2xl font-black text-yellow-500" id="mins-${p.id}">00</div>
+                            <div class="text-[8px] text-gray-500 uppercase font-black tracking-widest mt-1">MIN</div>
+                        </div>
+                        <div class="bg-black/60 border border-yellow-500/20 rounded-xl p-3 min-w-[60px] text-center shadow-inner">
+                            <div class="font-mono text-2xl font-black text-yellow-500" id="secs-${p.id}">00</div>
+                            <div class="text-[8px] text-gray-500 uppercase font-black tracking-widest mt-1">SEC</div>
+                        </div>
                     </div>
-                    <button id="launch-btn-${p.id}" onclick="triggerAccessSound(event, '${p.projectUrl}')" class="w-full py-4 bg-gray-800 text-gray-500 rounded-xl font-black text-xs uppercase tracking-widest border border-gray-700 cursor-not-allowed" disabled>
-                        ACCESS DENIED UNTIL LAUNCH
+
+                    <button id="launch-btn-${p.id}" onclick="triggerAccessSound(event, '${p.projectUrl}')" disabled class="w-full py-4 bg-gray-800 text-gray-500 rounded-xl font-black text-xs uppercase tracking-widest cursor-not-allowed border border-gray-700 transition-all duration-500 relative z-10 flex items-center justify-center gap-2">
+                        <i class="fas fa-ban" id="launch-icon-${p.id}"></i> <span id="launch-text-${p.id}">LINK ENCRYPTED</span>
                     </button>
                 </div>
             `;
+            // Timer for this specific project
             startCountdown(p.id, launchTimestamp, p.projectUrl);
+
         } else {
+            // ==========================================
+            // 🌐 RENDER ACTIVE NODES
+            // ==========================================
             let borderColor = p.isPinned ? 'border-cyan-500/50' : 'border-white/10';
-            projectsHTML += `
-                <div class="glass-panel p-6 flex flex-col h-full relative overflow-hidden group border ${borderColor}">
+            let btnColor = p.isPinned ? 'from-cyan-500 to-blue-500' : 'from-green-500 to-cyan-500';
+            
+            newProjectsHTML += `
+                <div class="glass-panel p-6 flex flex-col h-full relative overflow-hidden group border ${borderColor} hover:border-white/30 transition-all duration-300">
+                    <div class="absolute -top-10 -right-10 w-32 h-32 bg-green-500/10 rounded-full blur-3xl group-hover:scale-150 transition-transform duration-700"></div>
                     ${pinnedHtml}
+                    
                     <div class="flex items-start gap-5 mb-6 relative z-10">
-                        <img src="${p.logoLink}" class="w-16 h-16 rounded-2xl object-cover shadow-lg border border-white/10" onerror="this.src='https://via.placeholder.com/150'">
+                        <img src="${p.logoLink}" class="w-16 h-16 rounded-2xl object-cover border border-white/10" onerror="this.src='https://via.placeholder.com/150'">
                         <div>
-                            <h3 class="text-xl font-bold text-white mb-1 leading-tight">${p.title}</h3>
-                            <div onclick="addStar(event, '${p.id}')" class="cursor-pointer inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-green-500/10 text-green-400 border border-green-500/20 text-[10px] font-mono uppercase font-bold hover:bg-green-500/20 transition-all">
-                                <span class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
+                            <h3 class="text-xl font-bold text-white mb-1 leading-tight uppercase">${p.title}</h3>
+                            <div onclick="addStar(event, '${p.id}')" class="cursor-pointer inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-white/5 text-gray-300 border border-white/10 text-[10px] font-mono uppercase font-bold hover:bg-green-500/20 hover:text-green-400 hover:border-green-500/30 transition-all group/star">
+                                <span class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse group-hover/star:shadow-[0_0_10px_#00ff9d]"></span>
                                 Stars: <span id="star-count-${p.id}" class="text-white ml-1">${starCount}</span>
                             </div>
                         </div>
                     </div>
-                    <p class="text-gray-400 text-sm mb-8 flex-1 relative z-10 line-clamp-3">${p.description}</p>
-                    <button onclick="triggerAccessSound(event, '${p.projectUrl}')" class="w-full py-4 bg-gradient-to-r from-green-500 to-cyan-500 text-black rounded-xl font-black text-[10px] uppercase tracking-widest relative z-10 flex items-center justify-center gap-2 hover:scale-[1.02] transition-transform shadow-lg">
+                    
+                    <p class="text-gray-400 text-sm mb-8 flex-1 relative z-10 line-clamp-3 leading-relaxed">${p.description}</p>
+                    
+                    <button onclick="triggerAccessSound(event, '${p.projectUrl}')" class="w-full py-4 bg-gradient-to-r ${btnColor} text-black rounded-xl font-black text-[10px] uppercase tracking-widest relative z-10 flex items-center justify-center gap-2 hover:scale-[1.02] transition-transform shadow-lg">
                         <span>ACCESS PORTAL</span>
                         <i class="fas fa-external-link-alt"></i>
                     </button>
@@ -1547,48 +1583,37 @@ database.ref('organization_projects').on('value', snap => {
         }
     });
 
-    // Sirf tab update karein jab data waqai change ho (Smoothness ke liye)
-    if(launcherContainer.innerHTML !== launcherHTML) launcherContainer.innerHTML = launcherHTML;
-    if(projectsContainer.innerHTML !== projectsHTML) projectsContainer.innerHTML = projectsHTML;
+    // ⚡ Optimization: Sirf tab update karo jab content change ho
+    if(launcherContainer.innerHTML !== newLauncherHTML) launcherContainer.innerHTML = newLauncherHTML;
+    if(projectsContainer.innerHTML !== newProjectsHTML) projectsContainer.innerHTML = newProjectsHTML;
 
-    if (hasUpcoming) launchPadSection.classList.remove('hidden');
-    else launchPadSection.classList.add('hidden');
+    // Show/Hide Launch Pad section
+    if(launchPadSection) {
+        hasUpcoming ? launchPadSection.classList.remove('hidden') : launchPadSection.classList.add('hidden');
+    }
 });
 
 // ==========================================
-// ⭐ UPDATED STAR FUNCTION (No Jump)
+// ⭐ UPDATED STAR FUNCTION (No Jumping)
 // ==========================================
 function addStar(event, projectId) {
-    if(event) event.preventDefault(); // Browser ko jump karne se rokta hai
+    if(event) {
+        event.preventDefault();
+        event.stopPropagation(); // Masla hal: Link jump nahi karega
+    }
 
     const starRef = database.ref('organization_projects/' + projectId + '/stars');
     starRef.transaction(currentStars => {
         return (currentStars || 0) + 1;
     }).then(() => {
-        // Sirf sound play karein, page refresh ki zaroorat nahi
+        // Star sound
         const sfx = document.getElementById('click-sfx');
         if(sfx) { sfx.currentTime = 0; sfx.play().catch(e => {}); }
     });
 }
 
 // ==========================================
-// 🔊 UPDATED ACCESS SOUND (No Jump)
-// ==========================================
-function triggerAccessSound(event, url) {
-    if(event) event.preventDefault(); // Link behavior ko control karne ke liye
-
-    const sfx = document.getElementById('click-sfx');
-    if(sfx) { sfx.currentTime = 0; sfx.play().catch(e => {}); }
-
-    if(url && url !== "") {
-        setTimeout(() => {
-            window.open(url, '_blank'); // Naye tab mein khole ga bina page load kiye
-        }, 300);
-    }
-}
-
-// ==========================================
-// ⏱️ TIMER LOGIC (No Reload)
+// ⏱️ TIMER LOGIC (Live Unlock - No Reload)
 // ==========================================
 function startCountdown(projectId, launchTimeMs, projectUrl) {
     countdownIntervals[projectId] = setInterval(() => {
@@ -1597,36 +1622,81 @@ function startCountdown(projectId, launchTimeMs, projectUrl) {
 
         if (distance <= 0) {
             clearInterval(countdownIntervals[projectId]);
-            // Reload ke bajaye UI update karein
-            const btn = document.getElementById(`launch-btn-${projectId}`);
-            const badge = document.getElementById(`status-badge-${projectId}`);
+            
+            // UI Live Update (No Page Refresh)
             const box = document.getElementById(`countdown-box-${projectId}`);
+            const badge = document.getElementById(`status-badge-${projectId}`);
+            const btn = document.getElementById(`launch-btn-${projectId}`);
 
-            if(box) box.innerHTML = `<div class="text-green-400 font-black text-center w-full animate-pulse">SYSTEM ONLINE</div>`;
-            if(badge) badge.innerHTML = `<i class="fas fa-unlock"></i> ONLINE`;
+            if(box) box.innerHTML = `<div class="bg-green-500/10 border border-green-500/30 text-green-400 font-black text-sm text-center w-full py-4 rounded-xl animate-pulse tracking-widest">SYSTEM DEPLOYED & ONLINE</div>`;
+            if(badge) {
+                badge.innerHTML = `<i class="fas fa-unlock"></i> DEPLOYED`;
+                badge.className = "inline-flex items-center gap-2 px-3 py-1 bg-green-500/10 text-green-400 border border-green-500/30 rounded-lg text-xs font-mono font-bold tracking-widest";
+            }
             if(btn) {
                 btn.disabled = false;
-                btn.innerText = "ENTER PORTAL NOW";
-                btn.classList.replace('bg-gray-800', 'bg-yellow-500');
-                btn.classList.replace('text-gray-500', 'text-black');
-                btn.classList.replace('cursor-not-allowed', 'cursor-pointer');
+                btn.className = "w-full py-4 bg-yellow-500 text-black rounded-xl font-black text-xs uppercase tracking-widest cursor-pointer border border-yellow-400 transition-all duration-300 relative z-10 flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(234,179,8,0.4)]";
+                document.getElementById(`launch-icon-${projectId}`).className = "fas fa-external-link-alt";
+                document.getElementById(`launch-text-${projectId}`).innerText = "ACCESS PORTAL";
+                btn.onclick = (e) => triggerAccessSound(e, projectUrl);
             }
             return;
         }
 
-        // Timer calculation logic (Same as before)
+        // Calculation
         const days = Math.floor(distance / (1000 * 60 * 60 * 24));
         const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
         const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
         const seconds = Math.floor((distance % (1000 * 60)) / 1000);
 
-        if(document.getElementById(`days-${projectId}`)) {
-            document.getElementById(`days-${projectId}`).innerText = days.toString().padStart(2, '0');
-            document.getElementById(`hours-${projectId}`).innerText = hours.toString().padStart(2, '0');
-            document.getElementById(`mins-${projectId}`).innerText = minutes.toString().padStart(2, '0');
-            document.getElementById(`secs-${projectId}`).innerText = seconds.toString().padStart(2, '0');
-        }
+        // Update Text
+        const d = document.getElementById(`days-${projectId}`);
+        const h = document.getElementById(`hours-${projectId}`);
+        const m = document.getElementById(`mins-${projectId}`);
+        const s = document.getElementById(`secs-${projectId}`);
+
+        if(d) d.innerText = days.toString().padStart(2, '0');
+        if(h) h.innerText = hours.toString().padStart(2, '0');
+        if(m) m.innerText = minutes.toString().padStart(2, '0');
+        if(s) s.innerText = seconds.toString().padStart(2, '0');
     }, 1000);
+}
+
+// ==========================================
+// 🔊 ACCESS CONTROLLER (Smooth Redirect)
+// ==========================================
+function triggerAccessSound(event, url) {
+    if(event) event.preventDefault();
+
+    const sfx = document.getElementById('click-sfx');
+    if(sfx) { sfx.currentTime = 0; sfx.play().catch(e => {}); }
+
+    if(url && url.trim() !== "") {
+        // Futuristic Toast
+        Swal.fire({
+            toast: true,
+            position: 'bottom-end',
+            icon: 'success',
+            title: 'CONNECTION ESTABLISHED',
+            showConfirmButton: false,
+            timer: 1000,
+            background: '#05070a',
+            color: '#00ff9d'
+        });
+
+        setTimeout(() => {
+            window.open(url, '_blank');
+        }, 500);
+    } else {
+        Swal.fire({
+            title: 'ENCRYPTION ERROR',
+            text: 'Admin has not provided a link yet.',
+            icon: 'error',
+            background: '#05070a',
+            color: '#fff',
+            confirmButtonColor: '#ff4b4b'
+        });
+    }
 }
 
     </script>
