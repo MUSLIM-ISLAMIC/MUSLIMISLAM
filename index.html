@@ -434,6 +434,8 @@
     </style>
 </head>
 <body>
+    <audio id="portal-bg-music" loop></audio>
+    
 <div id="update-overlay" class="fixed inset-0 bg-[#05070a]/95 backdrop-blur-xl z-[100000] hidden flex items-center justify-center p-6">
     <div class="max-w-md w-full glass-panel p-8 border border-cyan-500/30 text-center animate__animated animate__zoomIn">
         <div class="w-20 h-20 bg-cyan-500/20 rounded-full flex items-center justify-center mx-auto mb-6 shadow-[0_0_30px_rgba(0,255,157,0.2)]">
@@ -1621,32 +1623,54 @@ function startCountdown(projectId, launchTimeMs, projectUrl) {
 function triggerAccessSound(event, target) {
     if (event) event.preventDefault();
 
-    // 🔊 Audio Fetching (Admin Panel ke mutabiq IDs)
-    const clickSfx = document.getElementById('portal-click-sfx') || document.getElementById('click-sfx');
-    
-    // Admin Settings Check (Firebase se link hai to ye behtar kaam karega)
-    if (clickSfx) {
-        clickSfx.currentTime = 0;
-        // Sound sirf tab bajega agar element page par maujood hai
-        clickSfx.play().catch(e => console.log("Audio play blocked by browser"));
-    }
+    // 🔊 Sound Effect Setting Check
+    database.ref('system_config/sound_effects').once('value').then(snap => {
+        const isSoundEnabled = snap.val();
 
-    if (!target) return;
-
-    // Scroll Logic
-    if (target.startsWith('#')) {
-        const element = document.querySelector(target);
-        if (element) {
-            element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        if (isSoundEnabled !== false) {
+            const clickSfx = document.getElementById('portal-click-sfx') || document.getElementById('click-sfx');
+            if (clickSfx) {
+                clickSfx.currentTime = 0;
+                clickSfx.play().catch(e => console.log("Sound Triggered"));
+            }
         }
-    } 
-    // Link Logic
-    else {
+
+        // Logic for Scroll or Link
+        if (!target) return;
+
         setTimeout(() => {
-            window.open(target, '_blank');
-        }, 500);
-    }
+            if (target.startsWith('#')) {
+                const element = document.querySelector(target);
+                if (element) {
+                    element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            } else {
+                window.open(target, '_blank');
+            }
+        }, 150); // Delay for better sound sync
+    });
 }
+// ==========================================
+// 🎵 FIREBASE MUSIC SYNC ENGINE (PLACE THIS HERE)
+// ==========================================
+database.ref('system_config/bg_music').on('value', (snapshot) => {
+    const musicUrl = snapshot.val();
+    const bgMusicElement = document.getElementById('portal-bg-music'); 
+    
+    if (musicUrl && bgMusicElement) {
+        // Sirf tab update karo agar link waqai badla ho
+        if(bgMusicElement.src !== musicUrl) {
+            bgMusicElement.src = musicUrl;
+            bgMusicElement.load(); 
+            console.log("🎶 New Music Synced: " + musicUrl);
+            
+            // Agar pehle se music ON tha toh naye gaane ko auto-play karein
+            if (typeof isMusicActive !== 'undefined' && isMusicActive) {
+                bgMusicElement.play().catch(e => console.log("Playback interaction needed"));
+            }
+        }
+    }
+});
 
   </script>
 </body>
