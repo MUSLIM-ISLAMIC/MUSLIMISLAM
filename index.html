@@ -1619,23 +1619,29 @@ function startCountdown(projectId, launchTimeMs, projectUrl) {
 // 🔊 ACCESS CONTROLLER (Smooth Redirect)
 // ==========================================
 function triggerAccessSound(event, target) {
-    if (event) event.preventDefault(); // Page reload/jump rokne ke liye
+    if (event) event.preventDefault();
 
-    // Sound Play
-    const sfx = document.getElementById('click-sfx');
-    if (sfx) { sfx.currentTime = 0; sfx.play().catch(e => {}); }
+    // 🔊 Audio Fetching (Admin Panel ke mutabiq IDs)
+    const clickSfx = document.getElementById('portal-click-sfx') || document.getElementById('click-sfx');
+    
+    // Admin Settings Check (Firebase se link hai to ye behtar kaam karega)
+    if (clickSfx) {
+        clickSfx.currentTime = 0;
+        // Sound sirf tab bajega agar element page par maujood hai
+        clickSfx.play().catch(e => console.log("Audio play blocked by browser"));
+    }
 
     if (!target) return;
 
-    // Agar target '#' se shuru ho raha hai (ID hai) toh scroll karo
+    // Scroll Logic
     if (target.startsWith('#')) {
         const element = document.querySelector(target);
         if (element) {
             element.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
     } 
-    // Agar target link hai toh open karo
-    else if (target.trim() !== "") {
+    // Link Logic
+    else {
         setTimeout(() => {
             window.open(target, '_blank');
         }, 500);
