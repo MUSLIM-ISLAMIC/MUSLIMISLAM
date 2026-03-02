@@ -543,6 +543,33 @@
     <h3 id="viewer-name" class="text-2xl font-black text-white mt-6 tracking-widest"></h3>
     <p id="viewer-role" class="text-purple-400 font-mono uppercase text-sm mt-2"></p>
 </div>
+<div id="project-detail-modal" class="fixed inset-0 bg-black/95 z-[99999] hidden flex flex-col items-center justify-center p-4 opacity-0 transition-all duration-300 backdrop-blur-2xl">
+    <button onclick="closeProjectDetail()" class="absolute top-6 right-6 text-white text-5xl hover:text-green-400 transition-all">&times;</button>
+    
+    <div class="max-w-5xl w-full glass-panel p-8 md:p-12 scale-90 transition-transform duration-300 border-green-500/20">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
+            <div class="relative">
+                <img id="detail-project-img" src="" class="w-full h-auto rounded-3xl border border-white/10 shadow-2xl">
+                <div id="detail-project-status" class="absolute top-4 left-4 px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest"></div>
+            </div>
+            
+            <div class="flex flex-col justify-center">
+                <h2 id="detail-project-title" class="text-4xl md:text-6xl font-black mb-4 text-white uppercase italic leading-none"></h2>
+                <p id="detail-project-date" class="text-green-400 font-mono text-xs mb-8 tracking-widest uppercase"></p>
+                
+                <div class="bg-white/5 p-6 rounded-2xl border border-white/5 mb-8">
+                    <h4 class="text-[10px] font-bold text-gray-500 uppercase mb-3 tracking-[0.2em]">Project Mission Dossier</h4>
+                    <p id="detail-project-desc" class="text-gray-300 leading-relaxed text-lg italic font-light"></p>
+                </div>
+
+                <a id="detail-project-link" href="#" target="_blank" onclick="triggerAccessSound(event, this.href)" class="w-full bg-green-500 text-black text-center py-5 rounded-full font-black text-xs uppercase tracking-[0.3em] hover:bg-green-400 transition-all shadow-[0_0_30px_rgba(0,255,157,0.4)]">
+                    INITIALIZE PROJECT NODE
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
     <section id="intel" class="py-16 max-w-7xl mx-auto relative z-10">
         <div class="text-center mb-12" data-aos="fade-up">
             <h3 class="text-xs font-mono text-green-400 tracking-[0.2em] mb-2">SYSTEM SCAN</h3>
@@ -1406,14 +1433,81 @@ database.ref('scheduled_launches').on('value', snap => {
         window.launchIntervals.push(timer);
     });
 });
-// ==========================================================================
-// 🚀 MIO DIGITAL PROJECT LAUNCHER & ACTIVE NODES ENGINE (STABLE VERSION 2.0)
-// ==========================================================================
-// Author: Gemini for Muaaz Iqbal (MiTV Network)
-// Description: Optimized to prevent flickering, jumping, and auto-reload issues.
+/**
+ * ==================================================================================
+ * 🚀 MUSLIM ISLAM - ADVANCED PROJECT ENGINE v3.0 (STABLE)
+ * ==================================================================================
+ * Features: Real-time Sync, Zero-Flicker Rendering, Pinned Nodes, & Detail Modal.
+ */
 
-let countdownIntervals = {}; // Har project ka timer save rakhne ke liye
+let countdownIntervals = {}; 
+let allProjects = {}; // Full Detail Modal ke liye cache storage
 
+// 1. PROJECT DETAIL MODAL FUNCTIONS
+function openProjectDetail(projectId) {
+    const p = allProjects[projectId];
+    if (!p) return;
+
+    const modal = document.getElementById('project-detail-modal');
+    if (!modal) {
+        console.error("Project Detail Modal missing in HTML!");
+        return;
+    }
+
+    // Modal elements find karein aur data fill karein
+    const elements = {
+        title: document.getElementById('detail-project-title'),
+        desc: document.getElementById('detail-project-desc'),
+        img: document.getElementById('detail-project-img'),
+        date: document.getElementById('detail-project-date'),
+        link: document.getElementById('detail-project-link'),
+        status: document.getElementById('detail-project-status')
+    };
+
+    if (elements.title) elements.title.innerText = p.title || p.projectName || "Unknown Project";
+    if (elements.desc) elements.desc.innerText = p.description || "No dossier available.";
+    if (elements.img) elements.img.src = p.logoLink || p.projectImage || "https://i.ibb.co/hxKxjqWk/logo.png";
+    if (elements.date) elements.date.innerText = "Target/Launch: " + (p.launchTime || p.launchDate || "Online");
+    
+    if (elements.link) {
+        elements.link.href = p.projectUrl || "#";
+        // Agar project upcoming hai to link hide ya disable rakhein
+        const isUpcoming = (new Date(p.launchTime || p.launchDate).getTime() > new Date().getTime());
+        elements.link.style.display = isUpcoming ? 'none' : 'block';
+    }
+
+    if (elements.status) {
+        const isUpcoming = (new Date(p.launchTime || p.launchDate).getTime() > new Date().getTime());
+        elements.status.innerText = isUpcoming ? "UPCOMING" : "ACTIVE";
+        elements.status.className = `absolute top-4 left-4 px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${isUpcoming ? 'bg-yellow-500 text-black' : 'bg-green-500 text-black shadow-[0_0_15px_rgba(0,255,157,0.5)]'}`;
+    }
+
+    // Modal show animations
+    modal.classList.remove('hidden');
+    setTimeout(() => {
+        modal.classList.remove('opacity-0');
+        const glass = modal.querySelector('.glass-panel');
+        if (glass) glass.classList.remove('scale-90');
+    }, 10);
+
+    // Sound play
+    triggerAccessSound(null, null);
+}
+
+function closeProjectDetail() {
+    const modal = document.getElementById('project-detail-modal');
+    if (!modal) return;
+    
+    modal.classList.add('opacity-0');
+    const glass = modal.querySelector('.glass-panel');
+    if (glass) glass.classList.add('scale-90');
+    
+    setTimeout(() => {
+        modal.classList.add('hidden');
+    }, 300);
+}
+
+// 2. MAIN ENGINE LISTENER
 database.ref('organization_projects').on('value', snap => {
     const launcherContainer = document.getElementById('launcher-container');
     const projectsContainer = document.getElementById('projects-container');
@@ -1421,90 +1515,152 @@ database.ref('organization_projects').on('value', snap => {
     
     if(!launcherContainer || !projectsContainer) return;
 
-    // Purane sab timers clear karo taake memory leak na ho
+    // Cleanup: Purane timers khatam karein
     Object.values(countdownIntervals).forEach(clearInterval);
     countdownIntervals = {};
-
-    let hasUpcoming = false;
-    let projectsArray = [];
+    allProjects = {}; 
 
     if(!snap.exists()) {
-        projectsContainer.innerHTML = `<p class="text-center w-full text-gray-500 font-mono col-span-full">No active nodes found in databank.</p>`;
+        projectsContainer.innerHTML = `<div class="col-span-full py-10 text-center text-gray-500 font-mono">NO ACTIVE NODES DETECTED.</div>`;
         if(launchPadSection) launchPadSection.classList.add('hidden');
         return;
     }
 
-    // Firebase data ko array mein convert aur sort karein
+    let hasUpcoming = false;
+    let projectsArray = [];
+
+    // Data collection
     snap.forEach(child => {
         let p = child.val();
         p.id = child.key;
+        allProjects[p.id] = p; // Modal ke liye save karein
         projectsArray.push(p);
     });
 
-    // 📌 Sort Logic: PINNED projects upar, baqi niche
+    // 📌 PINNED Logic: Pinned projects ko top par layein
     projectsArray.sort((a, b) => (a.isPinned === b.isPinned) ? 0 : a.isPinned ? -1 : 1);
 
     const now = new Date().getTime();
-    let newLauncherHTML = '';
-    let newProjectsHTML = '';
+    let launcherHtml = '';
+    let gridHtml = '';
 
     projectsArray.forEach(p => {
         const starCount = p.stars || 0;
-        const pinnedHtml = p.isPinned ? `
-            <div class="absolute top-6 -right-10 bg-gradient-to-r from-cyan-400 to-blue-500 text-black font-black text-[10px] uppercase tracking-widest px-10 py-1.5 transform rotate-45 shadow-[0_0_15px_rgba(6,182,212,0.5)] z-20">
-                PINNED NODE
+        const pinnedBadge = p.isPinned ? `
+            <div class="absolute top-6 -right-10 bg-gradient-to-r from-cyan-400 to-blue-500 text-black font-black text-[10px] uppercase tracking-widest px-10 py-1.5 transform rotate-45 z-20 shadow-lg">
+                PINNED
             </div>` : ``;
         
-        let launchTimestamp = p.launchTime ? new Date(p.launchTime).getTime() : 0;
+        // Time parsing logic (Multiple formats support)
+        let launchTimestamp = new Date(p.launchTime || p.launchDate).getTime();
         let isUpcoming = (launchTimestamp > now);
 
         if (isUpcoming) {
             hasUpcoming = true;
-            newLauncherHTML += `
-                <div class="glass-panel p-8 relative overflow-hidden border border-yellow-500/30 shadow-[0_0_30px_rgba(255,193,7,0.05)] transform hover:scale-[1.02] transition-all duration-500 group">
-                    <div class="absolute -top-20 -right-20 w-48 h-48 bg-yellow-500/10 rounded-full blur-3xl group-hover:bg-yellow-500/20 transition-colors"></div>
-                    ${pinnedHtml}
-                    
-                    <div class="flex items-center gap-5 mb-4 relative z-10">
-                        <img src="${p.logoLink}" class="w-20 h-20 rounded-2xl object-cover border-2 border-yellow-500/50 shadow-[0_0_15px_rgba(255,193,7,0.3)]" onerror="this.src='https://via.placeholder.com/150'">
-                        <div>
-                            <h3 class="text-2xl font-black text-white mb-1 uppercase tracking-wider">${p.title}</h3>
-                            <div id="status-badge-${p.id}" class="inline-flex items-center gap-2 px-3 py-1 bg-yellow-500/10 text-yellow-400 border border-yellow-500/30 rounded-lg text-xs font-mono font-bold tracking-widest transition-all">
-                                <i class="fas fa-lock"></i> SYSTEM LOCKED
+            launcherHtml += `
+                <div class="glass-panel p-8 relative overflow-hidden border border-yellow-500/30 group mb-6">
+                    ${pinnedBadge}
+                    <div class="flex flex-col md:flex-row items-center gap-8 relative z-10">
+                        <div class="cursor-pointer" onclick="openProjectDetail('${p.id}')">
+                            <img src="${p.logoLink || p.projectImage}" class="w-32 h-32 rounded-3xl object-cover border-2 border-yellow-500/50 shadow-2xl group-hover:scale-105 transition-transform duration-500">
+                        </div>
+                        <div class="flex-1 text-center md:text-left">
+                            <h3 class="text-3xl font-black text-white uppercase italic tracking-tighter mb-2">${p.title || p.projectName}</h3>
+                            <div class="flex justify-center md:justify-start gap-3 mb-6" id="countdown-box-${p.id}">
+                                <div class="bg-black/60 border border-yellow-500/20 rounded-xl p-3 min-w-[70px]">
+                                    <div class="font-mono text-2xl font-black text-yellow-500" id="days-${p.id}">00</div>
+                                    <div class="text-[8px] text-gray-500 font-black uppercase">Days</div>
+                                </div>
+                                <div class="bg-black/60 border border-yellow-500/20 rounded-xl p-3 min-w-[70px]">
+                                    <div class="font-mono text-2xl font-black text-yellow-500" id="hours-${p.id}">00</div>
+                                    <div class="text-[8px] text-gray-500 font-black uppercase">Hrs</div>
+                                </div>
+                                <div class="bg-black/60 border border-yellow-500/20 rounded-xl p-3 min-w-[70px]">
+                                    <div class="font-mono text-2xl font-black text-yellow-500" id="mins-${p.id}">00</div>
+                                    <div class="text-[8px] text-gray-500 font-black uppercase">Min</div>
+                                </div>
+                                <div class="bg-black/60 border border-yellow-500/20 rounded-xl p-3 min-w-[70px]">
+                                    <div class="font-mono text-2xl font-black text-yellow-500" id="secs-${p.id}">00</div>
+                                    <div class="text-[8px] text-gray-500 font-black uppercase">Sec</div>
+                                </div>
                             </div>
+                            <button onclick="openProjectDetail('${p.id}')" class="px-8 py-3 bg-white/5 border border-white/10 rounded-full text-[10px] font-black tracking-widest uppercase hover:bg-white/10 transition-all">VIEW DETAILS</button>
                         </div>
                     </div>
-                    
-                    <p class="text-gray-400 text-sm mb-6 relative z-10 h-10 overflow-hidden">${p.description}</p>
-                    
-                    <div class="flex justify-center gap-3 mb-6 relative z-10" id="countdown-box-${p.id}">
-                        <div class="bg-black/60 border border-yellow-500/20 rounded-xl p-3 min-w-[60px] text-center shadow-inner">
-                            <div class="font-mono text-2xl font-black text-yellow-500" id="days-${p.id}">00</div>
-                            <div class="text-[8px] text-gray-500 uppercase font-black tracking-widest mt-1">DAYS</div>
-                        </div>
-                        <div class="bg-black/60 border border-yellow-500/20 rounded-xl p-3 min-w-[60px] text-center shadow-inner">
-                            <div class="font-mono text-2xl font-black text-yellow-500" id="hours-${p.id}">00</div>
-                            <div class="text-[8px] text-gray-500 uppercase font-black tracking-widest mt-1">HRS</div>
-                        </div>
-                        <div class="bg-black/60 border border-yellow-500/20 rounded-xl p-3 min-w-[60px] text-center shadow-inner">
-                            <div class="font-mono text-2xl font-black text-yellow-500" id="mins-${p.id}">00</div>
-                            <div class="text-[8px] text-gray-500 uppercase font-black tracking-widest mt-1">MIN</div>
-                        </div>
-                        <div class="bg-black/60 border border-yellow-500/20 rounded-xl p-3 min-w-[60px] text-center shadow-inner">
-                            <div class="font-mono text-2xl font-black text-yellow-500" id="secs-${p.id}">00</div>
-                            <div class="text-[8px] text-gray-500 uppercase font-black tracking-widest mt-1">SEC</div>
-                        </div>
-                    </div>
-
-                    <button id="launch-btn-${p.id}" onclick="triggerAccessSound(event, '${p.projectUrl}')" disabled class="w-full py-4 bg-gray-800 text-gray-500 rounded-xl font-black text-xs uppercase tracking-widest cursor-not-allowed border border-gray-700 transition-all duration-500 relative z-10 flex items-center justify-center gap-2">
-                        <i class="fas fa-ban" id="launch-icon-${p.id}"></i> <span id="launch-text-${p.id}">LINK ENCRYPTED</span>
-                    </button>
-                </div>
-            `;
-            // Timer for this specific project
-            startCountdown(p.id, launchTimestamp, p.projectUrl);
-
+                </div>`;
+            startCountdown(p.id, launchTimestamp);
         } else {
+            gridHtml += `
+                <div class="group relative bg-black/40 rounded-3xl overflow-hidden border border-white/5 hover:border-green-500/50 transition-all duration-500">
+                    ${pinnedBadge}
+                    <div class="relative h-56 overflow-hidden cursor-pointer" onclick="openProjectDetail('${p.id}')">
+                        <img src="${p.logoLink || p.projectImage}" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700">
+                        <div class="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-80"></div>
+                        <div class="absolute top-4 left-4 bg-green-500 text-black px-4 py-1 rounded-full text-[10px] font-black tracking-widest uppercase">ACTIVE</div>
+                        <div class="absolute top-4 right-4 flex items-center gap-2 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10">
+                            <i class="fas fa-star text-yellow-400 text-xs"></i>
+                            <span class="text-xs font-bold font-mono">${starCount}</span>
+                        </div>
+                    </div>
+                    <div class="p-6">
+                        <div class="flex justify-between items-start mb-2">
+                            <h3 class="text-xl font-black text-white uppercase italic tracking-tighter">${p.title || p.projectName}</h3>
+                            <button onclick="addStar(event, '${p.id}')" class="text-gray-500 hover:text-yellow-400 transition-colors">
+                                <i class="far fa-star text-lg"></i>
+                            </button>
+                        </div>
+                        <p class="text-gray-400 text-xs leading-relaxed mb-6 line-clamp-2">${p.description}</p>
+                        <div class="flex gap-3">
+                            <button onclick="openProjectDetail('${p.id}')" class="flex-1 py-3 bg-white/5 border border-white/10 rounded-full text-[9px] font-black uppercase tracking-widest hover:bg-white/10 transition">DETAILS</button>
+                            <a href="javascript:void(0)" onclick="triggerAccessSound(event, '${p.projectUrl}')" class="flex-1 py-3 bg-green-500 text-black text-center rounded-full text-[9px] font-black uppercase tracking-widest hover:bg-green-400 transition shadow-[0_0_15px_rgba(0,255,157,0.3)]">ACCESS</a>
+                        </div>
+                    </div>
+                </div>`;
+        }
+    });
+
+    // Final Rendering
+    launcherContainer.innerHTML = launcherHtml;
+    projectsContainer.innerHTML = gridHtml;
+    if(launchPadSection) launchPadSection.classList.remove('hidden');
+    
+    // Launcher visibility
+    const launcherHeader = document.getElementById('launcher-header');
+    if (launcherHeader) launcherHeader.style.display = hasUpcoming ? 'block' : 'none';
+});
+
+// 3. COUNTDOWN TIMER LOGIC
+function startCountdown(projectId, launchTimestamp) {
+    const interval = setInterval(() => {
+        const now = new Date().getTime();
+        const distance = launchTimestamp - now;
+
+        if (distance < 0) {
+            clearInterval(interval);
+            const box = document.getElementById(`countdown-box-${projectId}`);
+            if (box) box.innerHTML = `<div class="text-green-500 font-black text-sm uppercase tracking-widest animate-pulse">NODE ONLINE! REFRESH TO ACTIVATE</div>`;
+            return;
+        }
+
+        const d = Math.floor(distance / (1000 * 60 * 60 * 24));
+        const h = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const m = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+        const s = Math.floor((distance % (1000 * 60)) / 1000);
+
+        const dEl = document.getElementById(`days-${projectId}`);
+        const hEl = document.getElementById(`hours-${projectId}`);
+        const mEl = document.getElementById(`mins-${projectId}`);
+        const sEl = document.getElementById(`secs-${projectId}`);
+
+        if (dEl) dEl.innerText = d.toString().padStart(2, '0');
+        if (hEl) hEl.innerText = h.toString().padStart(2, '0');
+        if (mEl) mEl.innerText = m.toString().padStart(2, '0');
+        if (sEl) sEl.innerText = s.toString().padStart(2, '0');
+    }, 1000);
+    
+    countdownIntervals[projectId] = interval;
+}
+
             // ==========================================
             // 🌐 RENDER ACTIVE NODES
             // ==========================================
@@ -1671,6 +1827,41 @@ database.ref('system_config/bg_music').on('value', (snapshot) => {
         }
     }
 });
+// Global variable projects data save karne ke liye
+let allProjects = {};
+
+// Modal Kholne ka function
+function openProjectDetail(projectId) {
+    const p = allProjects[projectId];
+    if(!p) return;
+
+    // Data Fill Karna
+    document.getElementById('detail-project-img').src = p.image || p.projectImage;
+    document.getElementById('detail-project-title').innerText = p.title || p.projectName;
+    document.getElementById('detail-project-desc').innerText = p.description || "No detailed description available for this protocol.";
+    document.getElementById('detail-project-date').innerText = "ESTABLISHED: " + (p.launchDate || "STABLE");
+    document.getElementById('detail-project-link').href = p.projectUrl || "#";
+    
+    // Status Badge Logic
+    const statusEl = document.getElementById('detail-project-status');
+    statusEl.innerText = p.status || "ACTIVE";
+    statusEl.className = `absolute top-4 left-4 px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${p.status === 'Upcoming' ? 'bg-yellow-500 text-black' : 'bg-green-500 text-black'}`;
+
+    // Modal Show Karna
+    const modal = document.getElementById('project-detail-modal');
+    modal.classList.remove('hidden');
+    setTimeout(() => modal.classList.remove('opacity-0'), 10);
+    
+    // Sound Trigger
+    triggerAccessSound(null, null); 
+}
+
+// Modal Band karne ka function
+function closeProjectDetail() {
+    const modal = document.getElementById('project-detail-modal');
+    modal.classList.add('opacity-0');
+    setTimeout(() => modal.classList.add('hidden'), 300);
+}
 
   </script>
 </body>
