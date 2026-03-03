@@ -193,6 +193,7 @@
     <button onclick="pushSystemUpdate()" class="w-full bg-yellow-500 text-black font-bold py-3 rounded-xl hover:bg-yellow-400 transition-all">
         PUSH UPDATE TO ALL USERS 🚀
     </button>
+    
 </div>
 
                 <div class="flex justify-between items-center bg-green-500/5 p-6 rounded-2xl border border-green-500/10">
@@ -201,6 +202,41 @@
                         <i class="fas fa-plus-circle mr-2"></i> CREATE NEW
                     </button>
                 </div>
+                <div class="glass-card p-6 border border-purple-500/30 mt-6 animate__animated animate__fadeInUp">
+    <h3 class="text-lg font-black text-purple-400 mb-2">
+        <i class="fas fa-magic"></i> EVENT & DIGITAL ART CONTROL
+    </h3>
+    <p class="text-[10px] text-gray-400 mb-4 uppercase tracking-widest">Control Website Atmosphere & Events</p>
+    
+    <div class="space-y-4">
+        <div class="relative">
+            <label class="text-[10px] text-purple-400 font-bold ml-2">SELECT EVENT TYPE</label>
+            <select id="event-selector" class="w-full bg-black/50 border border-white/10 rounded-xl p-3 text-white outline-none focus:border-purple-500 transition-all appearance-none">
+                <option value="default">🌐 DEFAULT MODE (NORMAL)</option>
+                <option value="ramzan">🌙 RAMZAN MUBARAK MODE</option>
+                <option value="eid">✨ EID-UL-FITR CELEBRATION</option>
+                <option value="ashura">🖤 MUHARRAM / ASHURA MODE</option>
+                <option value="milad">💚 JASHN-E-EID MILAD</option>
+            </select>
+        </div>
+        
+        <div class="relative">
+            <label class="text-[10px] text-purple-400 font-bold ml-2">DIGITAL ART / BANNER URL</label>
+            <input id="event-art-url" type="text" placeholder="https://image-link.jpg" 
+                class="w-full bg-black/50 border border-white/10 rounded-xl p-3 text-white outline-none focus:border-purple-500 transition-all">
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <input id="news-title" type="text" placeholder="Latest News Title" class="bg-black/40 border border-white/5 p-3 rounded-xl text-sm text-white outline-none">
+            <input id="news-desc" type="text" placeholder="Short Description" class="bg-black/40 border border-white/5 p-3 rounded-xl text-sm text-white outline-none">
+        </div>
+        
+        <button onclick="updateSystemEvent()" class="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white font-black py-4 rounded-xl hover:scale-[1.02] active:scale-95 shadow-lg transition-all uppercase tracking-tighter">
+            ACTIVATE EVENT ENGINE 🚀
+        </button>
+    </div>
+</div>
+
                 <div id="admin-project-list" class="grid grid-cols-1 gap-4">
                     </div>
             </section>
@@ -217,6 +253,26 @@
                         <button onclick="sendAdminMsg()" class="bg-yellow-500 text-black px-8 rounded-xl font-black">SEND</button>
                     </div>
                 </div>
+                <div class="glass-card p-6 border border-purple-500/30 mt-6">
+    <h3 class="text-lg font-black text-purple-400 mb-2"><i class="fas fa-newspaper"></i> BROADCAST LATEST NEWS</h3>
+    <div class="space-y-3">
+        <input id="news-img" type="text" placeholder="Image URL (https://...)" class="w-full bg-black/50 border border-white/10 rounded-xl p-3 text-white focus:border-purple-400 outline-none">
+        <input id="news-title" type="text" placeholder="News Title" class="w-full bg-black/50 border border-white/10 rounded-xl p-3 text-white focus:border-purple-400 outline-none">
+        <textarea id="news-desc" placeholder="News Description..." class="w-full bg-black/50 border border-white/10 rounded-xl p-3 text-white focus:border-purple-400 outline-none h-24"></textarea>
+        <button onclick="updateLatestNews()" class="w-full bg-purple-600 text-white font-bold py-3 rounded-xl hover:bg-purple-500 transition-all shadow-lg">
+            PUBLISH NEWS 🚀
+        </button>
+    </div>
+</div>
+
+<div class="glass-card p-6 border border-orange-500/30 mt-6">
+    <h3 class="text-lg font-black text-orange-400 mb-2"><i class="fas fa-palette"></i> THEME & EVENT ENGINE</h3>
+    <p class="text-[10px] text-gray-400 mb-4">Website ka mahol badlein (e.g., Default or Ramzan).</p>
+    <div class="flex gap-4">
+        <button onclick="setTheme('default')" class="flex-1 py-3 bg-gray-800 text-white rounded-xl font-bold border border-white/10 hover:bg-gray-700">DEFAULT MODE</button>
+        <button onclick="setTheme('ramzan')" class="flex-1 py-3 bg-orange-600 text-white rounded-xl font-bold border border-orange-400/50 hover:bg-orange-500">RAMZAN EVENT 🌙</button>
+    </div>
+    
             </section>
 <section id="view-members" class="hidden space-y-6 animate__animated animate__fadeIn">
     <div class="flex justify-between items-center bg-purple-500/5 p-6 rounded-2xl border border-purple-500/10 shadow-[0_0_20px_rgba(168,85,247,0.05)]">
@@ -231,6 +287,7 @@
     
     <div id="admin-members-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         </div>
+        
 </section>
 
 
@@ -612,38 +669,7 @@ db.ref('system_config/bg_music').on('value', (snapshot) => {
     }
 });
 
-// Naya music link Firebase me update karna
-function updateGlobalMusic() {
-    // Agar security key match nahi karti (Agar aapne auth lagaya hua hai)
-    // if(!isAdminAuthenticated) return alert("System Locked!");
 
-    const newLink = document.getElementById('bg-music-link').value.trim();
-    
-    if(newLink === "") {
-        Swal.fire({ icon: 'error', title: 'Empty Link', text: 'Please enter a valid MP3/WAV URL!', background: '#05070a', color: '#fff'});
-        return;
-    }
-
-    db.ref('system_config/bg_music').set(newLink).then(() => {
-        Swal.fire({ icon: 'success', title: 'AUDIO SYNCED! 🎶', text: 'Portal par music update ho gaya hai!', background: '#05070a', color: '#fff'});
-    }).catch((error) => {
-        console.error("Firebase Audio Update Error: ", error);
-    });
-}
-// Version load karna
-db.ref('system_config/app_version').on('value', (snapshot) => {
-    if(snapshot.val()) document.getElementById('system-version-input').value = snapshot.val();
-});
-
-// Naya version set karna
-function pushSystemUpdate() {
-    const newVer = document.getElementById('system-version-input').value.trim();
-    if(newVer === "") return alert("Version number lazmi likhein!");
-
-    db.ref('system_config/app_version').set(newVer).then(() => {
-        Swal.fire({ icon: 'success', title: 'UPDATE DEPLOYED!', text: 'Sab users ko update ka notification chala jayega.', background: '#05070a', color: '#fff'});
-    });
-}
 // ==========================================
 // 🚀 MIO MEMBER MANAGEMENT ENGINE (ADMIN)
 // ==========================================
@@ -841,6 +867,42 @@ async function verifyBiometric() {
     } catch (err) {
         console.log("Biometric cancelled or failed.");
     }
+}
+// Latest News Update Logic
+function updateLatestNews() {
+    const img = document.getElementById('news-img').value;
+    const title = document.getElementById('news-title').value;
+    const desc = document.getElementById('news-desc').value;
+
+    if(!img || !title || !desc) return Swal.fire("Error", "Please fill all fields", "error");
+
+    db.ref('system_config/latest_news').set({
+        image: img,
+        title: title,
+        description: desc,
+        timestamp: Date.now()
+    }).then(() => {
+        Swal.fire("Success", "News Updated Successfully!", "success");
+    });
+}
+
+// Theme Switch Logic
+function setTheme(themeName) {
+    db.ref('system_config/active_theme').set(themeName).then(() => {
+        Swal.fire("Theme Updated", `System switched to ${themeName} mode`, "success");
+    });
+}
+function updateSystemEvent() {
+    const eventType = document.getElementById('event-selector').value;
+    const artUrl = document.getElementById('event-art-url').value;
+
+    db.ref('system_config/active_event').set({
+        type: eventType,
+        banner: artUrl,
+        timestamp: Date.now()
+    }).then(() => {
+        Swal.fire("System Updated", `Event "${eventType}" is now LIVE!`, "success");
+    });
 }
 
 

@@ -522,6 +522,31 @@
 </div>
         </div>
     </section>
+    <section id="news-section" class="max-w-4xl mx-auto p-6 hidden">
+    <div class="glass-panel overflow-hidden border-2 border-primary-glow/20">
+        <div class="relative h-64 w-full">
+            <img id="display-news-img" src="" class="w-full h-full object-cover">
+            <div class="absolute top-4 left-4 bg-red-600 text-white text-[10px] font-black px-3 py-1 rounded-full animate-pulse">LATEST UPDATE</div>
+        </div>
+        <div class="p-6">
+            <h2 id="display-news-title" class="text-2xl font-black text-gradient mb-2 uppercase"></h2>
+            <p id="display-news-desc" class="text-gray-400 text-sm leading-relaxed"></p>
+        </div>
+    </div>
+    <div id="event-display" class="max-w-7xl mx-auto px-4 mt-24 hidden">
+    <div class="relative rounded-3xl overflow-hidden border-2 border-primary-glow/30 shadow-[0_0_30px_rgba(0,0,0,0.5)]">
+        <img id="event-banner-img" src="" class="w-full h-48 md:h-64 object-cover">
+        <div class="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent flex items-end p-6">
+            <div>
+                <span id="event-tag" class="bg-primary-glow text-black text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-tighter"></span>
+                <h2 id="event-title" class="text-2xl md:text-4xl font-black mt-2 text-white"></h2>
+            </div>
+        </div>
+    </div>
+</div>
+
+</section>
+
 <section id="organization-members" class="member-section max-w-7xl mx-auto mt-20">
     <div class="text-center mb-16 relative z-10" data-aos="fade-up">
         <h2 class="text-3xl md:text-5xl font-black mb-4">OUR <span class="text-transparent bg-clip-text bg-gradient-to-r from-purple-500 to-cyan-500">PIONEERS</span></h2>
@@ -1668,6 +1693,68 @@ database.ref('system_config/bg_music').on('value', (snapshot) => {
             if (typeof isMusicActive !== 'undefined' && isMusicActive) {
                 bgMusicElement.play().catch(e => console.log("Playback interaction needed"));
             }
+        }
+    }
+});
+// 1. Listen for News
+database.ref('system_config/latest_news').on('value', (snapshot) => {
+    const data = snapshot.val();
+    if(data) {
+        document.getElementById('news-section').classList.remove('hidden');
+        document.getElementById('display-news-img').src = data.image;
+        document.getElementById('display-news-title').innerText = data.title;
+        document.getElementById('display-news-desc').innerText = data.description;
+    }
+});
+
+// 2. Listen for Theme Changes (Ramzan Event Logic)
+database.ref('system_config/active_theme').on('value', (snapshot) => {
+    const theme = snapshot.val();
+    const root = document.documentElement;
+    
+    if(theme === 'ramzan') {
+        // Ramzan Theme Colors
+        root.style.setProperty('--primary-glow', '#fcd34d'); // Gold/Yellow
+        root.style.setProperty('--bg-deep', '#050a0f');
+        // Background update (Optional)
+        document.body.style.backgroundImage = "url('https://your-ramzan-wallpaper-url.jpg')";
+        document.body.style.backgroundSize = "cover";
+        document.body.style.backgroundAttachment = "fixed";
+        
+        // Notification for user
+        console.log("🌙 Ramzan Theme Activated");
+    } else {
+        // Reset to Default
+        root.style.setProperty('--primary-glow', '#00ff9d');
+        root.style.setProperty('--bg-deep', '#02050a');
+        document.body.style.backgroundImage = "none";
+    }
+});
+// Firebase Event Listener
+database.ref('system_config/active_event').on('value', (snapshot) => {
+    const data = snapshot.val();
+    if (!data) return;
+
+    const root = document.documentElement;
+    const bannerSection = document.getElementById('event-display');
+    
+    if (data.type === 'default') {
+        bannerSection.classList.add('hidden');
+        root.style.setProperty('--primary-glow', '#00ff9d'); // Default Green
+        document.body.style.backgroundImage = "none";
+    } else {
+        bannerSection.classList.remove('hidden');
+        document.getElementById('event-banner-img').src = data.banner;
+        document.getElementById('event-tag').innerText = `LIVE EVENT: ${data.type}`;
+        
+        // Theme Logic for Different Events
+        if (data.type === 'ramzan') {
+            root.style.setProperty('--primary-glow', '#fcd34d'); // Gold for Ramzan
+            document.getElementById('event-title').innerText = "Ramzan Mubarak Node Active";
+            // Optional: Background elements badalna
+        } else if (data.type === 'eid') {
+            root.style.setProperty('--primary-glow', '#a855f7'); // Purple/Eid Glow
+            document.getElementById('event-title').innerText = "Eid-ul-Fitr Celebration Mode";
         }
     }
 });
